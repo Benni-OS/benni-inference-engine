@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from dataclasses import dataclass
 from math import floor
+from pathlib import Path
 from typing import Any
 
 import psutil
+
+from .scheduler_quant_aware import derive_from_gguf
 
 
 @dataclass(frozen=True)
@@ -47,6 +51,36 @@ DEFAULT_PROFILES: dict[str, ModelProfile] = {
         expert_cache_gb_per_slot=0.0,
         expert_slots=0,
     ),
+    "qwen3-235b-a22b": ModelProfile(
+        total_layers=96,
+        dense_layer_gb=0.35,
+        expert_cache_gb_per_slot=0.25,
+        expert_slots=256,
+    ),
+    "kimi-k2-32b": ModelProfile(
+        total_layers=64,
+        dense_layer_gb=0.22,
+        expert_cache_gb_per_slot=0.0,
+        expert_slots=0,
+    ),
+    "deepseek-v4": ModelProfile(
+        total_layers=61,
+        dense_layer_gb=0.40,
+        expert_cache_gb_per_slot=0.30,
+        expert_slots=256,
+    ),
+    "cyber-tiel-coder-35b": ModelProfile(
+        total_layers=48,
+        dense_layer_gb=0.18,
+        expert_cache_gb_per_slot=0.14,
+        expert_slots=128,
+    ),
+    "gemma-4-26b": ModelProfile(
+        total_layers=40,
+        dense_layer_gb=0.20,
+        expert_cache_gb_per_slot=0.10,
+        expert_slots=64,
+    ),
 }
 
 
@@ -64,11 +98,95 @@ class MoEScheduler:
         self.profile = profile or self._profile_for(model_name)
         self._budget = budget
 
+    def _load_registry_profile(self, key: str) -> ModelProfile | None:
+        """Search profiles in bie/models/profiles and bie/models/registry.json."""
+        root_dir = Path(__file__).parents[1]
+        profiles_dir = root_dir / "models" / "profiles"
+
+        # Check json files in profiles directory
+        if profiles_dir.is_dir():
+            for p_file in profiles_dir.glob("*.json"):
+                stem = p_file.stem.lower()
+                if stem in key or key in stem:
+                    try:
+                        data = json.loads(p_file.read_text(encoding="utf-8"))
+                        moe = data.get("moe_offload", {})
+                        if moe:
+                            return ModelProfile(
+                                total_layers=data.get("total_layers", 48),
+                                dense_layer_gb=data.get("dense_layer_gb", 0.16),
+                                expert_cache_gb_per_slot=data.get("expert_cache_gb_per_slot", 0.12),
+                                expert_slots=data.get("expert_slots", 128),
+                                moe_offload_pattern=moe.get("pattern", r"\.ffn_.*_exps\.=CPU"),
+                            )
+                    except (json.JSONDecodeError, OSError):
+                        pass
+
+        # Check registry.json
+        reg_file = root_dir / "models" / "registry.json"
+        if reg_file.is_file():
+            try:
+                reg_data = json.loads(reg_file.read_text(encoding="utf-8"))
+                for entry in reg_data.get("models", []):
+                    entry_id = str(entry.get("id", "")).lower()
+                    if entry_id in key or key in entry_id:
+                        is_moe = entry.get("type") == "moe"
+                        return ModelProfile(
+                            total_layers=48 if is_moe else 36,
+                            dense_layer_gb=0.18 if is_moe else 0.14,
+                            expert_cache_gb_per_slot=0.12 if is_moe else 0.0,
+                            expert_slots=128 if is_moe else 0,
+                        )
+            except (json.JSONDecodeError, OSError):
+                pass
+        return None
+
+    def _profile_from_gguf_file(self, model_name: str) -> ModelProfile | None:
+        """Attempt to read metadata directly from GGUF file if available."""
+        candidate = Path(model_name)
+        if not candidate.is_file():
+            model_dir = Path(os.getenv("BIE_MODEL_DIR", "models"))
+            test_paths = [
+                model_dir / model_name,
+                model_dir / f"{model_name}.gguf",
+                Path(__file__).parents[1] / "models" / model_name,
+                Path(__file__).parents[1] / "models" / f"{model_name}.gguf",
+            ]
+            candidate = next((p for p in test_paths if p.is_file()), candidate)
+
+        if candidate.is_file():
+            try:
+                gguf_info = derive_from_gguf(candidate)
+                layers = int(gguf_info.get("block_count", 0))
+                dense = float(gguf_info.get("dense_layer_gb", 0.14))
+                if layers > 0:
+                    is_moe = "expert" in candidate.name.lower() or "a3b" in candidate.name.lower() or "a4b" in candidate.name.lower() or "a22b" in candidate.name.lower()
+                    return ModelProfile(
+                        total_layers=layers,
+                        dense_layer_gb=dense,
+                        expert_cache_gb_per_slot=0.12 if is_moe else 0.0,
+                        expert_slots=128 if is_moe else 0,
+                    )
+            except Exception:
+                pass
+        return None
+
     def _profile_for(self, model_name: str) -> ModelProfile:
         key = model_name.lower().removesuffix(".gguf")
         for name, profile in DEFAULT_PROFILES.items():
             if name in key:
                 return profile
+
+        # Search dynamic profiles
+        registry_profile = self._load_registry_profile(key)
+        if registry_profile is not None:
+            return registry_profile
+
+        # GGUF file metadata inspection fallback
+        file_profile = self._profile_from_gguf_file(model_name)
+        if file_profile is not None:
+            return file_profile
+
         return ModelProfile(
             total_layers=0,
             dense_layer_gb=0.0,

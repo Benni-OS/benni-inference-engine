@@ -1,18 +1,24 @@
-"""BIE Core Engine — llama.cpp backend with explicit lifecycle and streaming."""
+"""BIE Core Engine — llama.cpp backend with explicit lifecycle, streaming, and Skill 81 integration."""
 
 from __future__ import annotations
 
 import os
+import time
+import uuid
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 from .backend import BackendConfig, LlamaCppBackend
+from .hot_pin import HotPinManager
+from .kv_manager import KVManager
 from .moe_scheduler import MoEScheduler
+from ..skill81.ceiling_extractor import CeilingExtractor
+from ..skill81.hallucination_guard import HallucinationGuard
 
 
 class BIEEngine:
-    """Small, testable inference facade for the local BIE runtime."""
+    """Inference facade for the local BIE runtime integrating Skill 81, KV compression, and expert hot-pinning."""
 
     def __init__(
         self,
@@ -35,6 +41,12 @@ class BIEEngine:
         self.model: Any | None = None
         self.backend: LlamaCppBackend | None = None
         self.runtime_config: dict[str, Any] | None = None
+
+        # Integrated Skill 81 & memory management components
+        self.ceiling_extractor = CeilingExtractor()
+        self.guard = HallucinationGuard()
+        self.kv_manager = KVManager(ctx_size=self.n_ctx)
+        self.hot_pin = HotPinManager(n_layers=48, n_experts=128)
 
     def resolve_model_path(self) -> Path:
         """Resolve a GGUF path from an explicit path or BIE_MODEL_DIR."""
@@ -84,6 +96,80 @@ class BIEEngine:
             raise ValueError("prompt must be a non-empty string")
         model = self._require_model()
         return model(prompt, **kwargs)
+
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        task_type: str = "general",
+        apply_skill81: bool = True,
+        guard: bool = False,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Execute chat completion with Skill 81 steering, KV compression, and optional guard check."""
+        if not messages:
+            raise ValueError("messages must be a non-empty list")
+        model = self._require_model()
+
+        # Apply Skill 81 steering if enabled
+        effective_messages = messages
+        if apply_skill81:
+            effective_messages = self.ceiling_extractor.extract(
+                messages,
+                model_profile={"model_id": self.model_name},
+                task_type=task_type,
+            )
+
+        # Apply KV context management & pruning
+        effective_messages = self.kv_manager.compress(effective_messages)
+
+        # Render prompt string (or format for backend)
+        prompt_str = "\n".join(f"{m.get('role', 'user')}: {m.get('content', '')}" for m in effective_messages)
+
+        t0 = time.time()
+        result = model(prompt_str, **kwargs)
+        elapsed = max(1e-6, time.time() - t0)
+
+        # Extract generated content
+        if isinstance(result, dict) and "choices" in result:
+            choice = result["choices"][0]
+            text = choice.get("text") or choice.get("message", {}).get("content", "")
+        else:
+            text = str(result)
+
+        # Compute usage tokens
+        prompt_tokens = self.kv_manager.estimate_tokens(prompt_str)
+        completion_tokens = self.kv_manager.estimate_tokens(text)
+        total_tokens = prompt_tokens + completion_tokens
+
+        response_payload: dict[str, Any] = {
+            "id": f"chatcmpl-{uuid.uuid4().hex}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": self.model_name,
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": text},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens,
+            },
+            "timings": {
+                "latency_s": round(elapsed, 3),
+                "tokens_per_second": round(completion_tokens / elapsed, 1) if elapsed > 0 else 0.0,
+            },
+        }
+
+        if guard:
+            last_prompt = messages[-1].get("content", "") if messages else prompt_str
+            response_payload["guard"] = self.guard.check(text, last_prompt)
+
+        return response_payload
 
     def stream(self, prompt: str, **kwargs: Any) -> Iterator[str]:
         """Yield generated text chunks from llama.cpp."""

@@ -308,6 +308,48 @@ def cmd_health(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_inspect(args: argparse.Namespace) -> int:
+    from bie.core.moe_scheduler import MoEScheduler
+    from bie.core.scheduler_quant_aware import derive_from_gguf
+
+    scheduler = MoEScheduler(args.model)
+    plan = scheduler.compute()
+    result: dict[str, Any] = {"model": args.model, "hardware_plan": plan}
+
+    model_path = Path(args.model_path) if args.model_path else Path(f"bie/models/{args.model}.gguf")
+    if model_path.is_file():
+        try:
+            result["gguf_metadata"] = derive_from_gguf(model_path)
+        except Exception as exc:
+            result["gguf_metadata_error"] = str(exc)
+
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+def cmd_guard(args: argparse.Namespace) -> int:
+    from bie.skill81.hallucination_guard import HallucinationGuard
+
+    prompt = args.prompt or ""
+    output = args.output or ""
+    if args.prompt_file and Path(args.prompt_file).is_file():
+        prompt = Path(args.prompt_file).read_text(encoding="utf-8")
+    if args.output_file and Path(args.output_file).is_file():
+        output = Path(args.output_file).read_text(encoding="utf-8")
+
+    guard = HallucinationGuard()
+    res = guard.check(output, prompt)
+    print(json.dumps(res, indent=2))
+    return 0 if res.get("passed", True) else 1
+
+
+def cmd_mcp(args: argparse.Namespace) -> int:
+    from bie.serve.mcp_bridge import run_mcp_server
+
+    run_mcp_server()
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m bie.serve")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -316,21 +358,25 @@ def build_parser() -> argparse.ArgumentParser:
         ("bench", "rodar benchmark de decode/prefill/VRAM", cmd_bench),
         ("serve", "servir o modelo via uvicorn", cmd_serve),
         ("health", "checar /health, /ready e /v1/models", cmd_health),
+        ("inspect", "inspecionar metadados de modelo e plano de offload", cmd_inspect),
+        ("guard", "verificar texto contra alucinação e drift (SA-81D)", cmd_guard),
+        ("mcp", "iniciar servidor nativo MCP via stdio JSON-RPC 2.0", cmd_mcp),
     ):
         p = sub.add_parser(name, help=help_text)
-        p.add_argument("--model", default="qwen3-8b")
-        p.add_argument("--model-path", default=None)
-        p.add_argument("--context", type=int, default=4096)
-        p.add_argument("--threads", type=int, default=None)
-        p.add_argument("--batch", type=int, default=512)
-        p.add_argument("--n-gpu-layers", type=int, default=None)
-        p.add_argument("--verbose", action="store_true")
-        p.add_argument(
-            "--engine",
-            choices=["bie", "llama-server"],
-            default="bie",
-            help="experimental: use a native llama-server over HTTP instead of the bundled backend",
-        )
+        if name in ("bench", "serve", "health", "inspect"):
+            p.add_argument("--model", default="qwen3-8b")
+            p.add_argument("--model-path", default=None)
+            p.add_argument("--context", type=int, default=4096)
+            p.add_argument("--threads", type=int, default=None)
+            p.add_argument("--batch", type=int, default=512)
+            p.add_argument("--n-gpu-layers", type=int, default=None)
+            p.add_argument("--verbose", action="store_true")
+            p.add_argument(
+                "--engine",
+                choices=["bie", "llama-server"],
+                default="bie",
+                help="experimental: use a native llama-server over HTTP instead of the bundled backend",
+            )
         if name == "bench":
             p.add_argument("--prompt-tokens", type=int, default=512)
             p.add_argument("--max-tokens", type=int, default=128)
@@ -343,6 +389,11 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("--host", default="127.0.0.1")
             p.add_argument("--port", type=int, default=8080)
             p.add_argument("--timeout", type=float, default=5.0)
+        elif name == "guard":
+            p.add_argument("--prompt", default="", help="Prompt original")
+            p.add_argument("--output", default="", help="Texto de saída gerado")
+            p.add_argument("--prompt-file", default=None, help="Caminho para arquivo com o prompt")
+            p.add_argument("--output-file", default=None, help="Caminho para arquivo com o output")
         p.set_defaults(fn=fn)
     return parser
 

@@ -63,7 +63,7 @@ def gguf_metadata(gguf_path: str | Path) -> dict:
     path = Path(gguf_path)
     if not path.is_file():
         raise FileNotFoundError(f"GGUF não encontrado: {path}")
-    size_gb = round(path.stat().st_size / (1024**3), 2)
+    size_gb = max(0.001, round(path.stat().st_size / (1024**3), 3))
     try:
         from llama_cpp import Llama
 
