@@ -15,23 +15,30 @@ from pydantic import BaseModel, Field
 from bie.core.embeddings import EmbeddingsEngine
 from bie.core.engine import BIEEngine
 from bie.core.grammar_guard import GrammarGuard
+from bie.core.vision import VisionEngine
+from bie.core.vram_arbiter import VRAMArbiter
 from bie.serve.tool_caller import ToolCallingEngine
 from bie.skill81.hallucination_guard import HallucinationGuard
 
 VERSION = "0.4.0"
+DEFAULT_PRIMARY_MODEL = "Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf"
+DEFAULT_VISION_MODEL = "gemma-4-26B-A4B-it-UD-Q4_K_XL.gguf"
+
 app = FastAPI(title="benni-inference-engine", version=VERSION)
 _engine: BIEEngine | None = None
 _guard = HallucinationGuard()
 _fallback_embeddings = EmbeddingsEngine()
+_vision_engine = VisionEngine()
+_arbiter = VRAMArbiter()
 
 
 class ChatMessage(BaseModel):
     role: str
-    content: str
+    content: str | list[dict[str, Any]] | list[Any]
 
 
 class CompletionRequest(BaseModel):
-    model: str = "qwen3-30b-a3b"
+    model: str = DEFAULT_PRIMARY_MODEL
     prompt: str
     temperature: float = Field(default=0.7, ge=0, le=2)
     max_tokens: int = Field(default=2048, ge=1)
@@ -40,7 +47,7 @@ class CompletionRequest(BaseModel):
 
 
 class ChatCompletionRequest(BaseModel):
-    model: str = "qwen3-30b-a3b"
+    model: str = DEFAULT_PRIMARY_MODEL
     messages: list[ChatMessage] = Field(min_length=1)
     temperature: float = Field(default=0.7, ge=0, le=2)
     max_tokens: int = Field(default=2048, ge=1)
@@ -54,7 +61,7 @@ class ChatCompletionRequest(BaseModel):
 
 
 class EmbeddingRequest(BaseModel):
-    model: str = "qwen3-30b-a3b"
+    model: str = DEFAULT_PRIMARY_MODEL
     input: str | list[str]
 
 
@@ -119,8 +126,31 @@ async def ready() -> dict[str, Any]:
 
 @app.get("/v1/models")
 async def models() -> dict[str, Any]:
-    model = _engine.model_name if _engine else "qwen3-30b-a3b"
-    return {"object": "list", "data": [{"id": model, "object": "model", "owned_by": "benni-os"}]}
+    model = _engine.model_name if _engine else DEFAULT_PRIMARY_MODEL
+    return {
+        "object": "list",
+        "data": [
+            {"id": model, "object": "model", "owned_by": "benni-os"},
+            {"id": DEFAULT_VISION_MODEL, "object": "model", "owned_by": "benni-os"},
+            {"id": "cyber-tiel-coder-35b", "object": "model", "owned_by": "benni-os"},
+            {"id": "gemma-4-26b-vision", "object": "model", "owned_by": "benni-os"},
+        ],
+    }
+
+
+@app.get("/v1/bie/arbiter")
+async def bie_arbiter(mode: str = "primary_exclusive") -> dict[str, Any]:
+    """Expose GPU VRAM allocation plan between Cyber-Tiel-Coder-35B and Gemma-4-26B."""
+    plan = _arbiter.compute_plan(mode)  # type: ignore
+    return {
+        "mode": plan.mode,
+        "primary_ngl": plan.primary_ngl,
+        "vision_ngl": plan.vision_ngl,
+        "primary_vram_gb": plan.primary_vram_gb,
+        "vision_vram_gb": plan.vision_vram_gb,
+        "total_vram_allocated_gb": plan.total_vram_allocated_gb,
+        "available_vram_gb": plan.available_vram_gb,
+    }
 
 
 @app.get("/v1/bie/metrics")
@@ -219,7 +249,23 @@ async def completions(request: CompletionRequest) -> dict[str, Any] | StreamingR
 @app.post("/v1/chat/completions", response_model=None)
 async def chat_completions(request: ChatCompletionRequest) -> dict[str, Any] | StreamingResponse:
     engine = _require_engine()
-    raw_messages = [{"role": m.role, "content": m.content} for m in request.messages]
+    raw_messages: list[dict[str, Any]] = []
+    has_vision = False
+    effective_model = request.model
+
+    for m in request.messages:
+        c = m.content
+        if isinstance(c, list):
+            has_vision = True
+            text, images = _vision_engine.extract_image_payloads(c)
+            if images:
+                text = _vision_engine.format_vision_prompt(text, len(images))
+            raw_messages.append({"role": m.role, "content": text})
+        else:
+            raw_messages.append({"role": m.role, "content": str(c)})
+
+    if has_vision and request.model == DEFAULT_PRIMARY_MODEL:
+        effective_model = DEFAULT_VISION_MODEL
 
     # Tool calling injection if requested
     if request.tools:
@@ -228,7 +274,7 @@ async def chat_completions(request: ChatCompletionRequest) -> dict[str, Any] | S
     if request.apply_skill81 and hasattr(engine, "ceiling_extractor"):
         processed_messages = engine.ceiling_extractor.extract(
             raw_messages,
-            model_profile={"model_id": request.model},
+            model_profile={"model_id": effective_model},
             task_type=request.task_type,
         )
     else:
@@ -240,7 +286,7 @@ async def chat_completions(request: ChatCompletionRequest) -> dict[str, Any] | S
 
     if request.stream:
         return StreamingResponse(
-            _sse(engine.stream(prompt, **options), request_id, request.model),
+            _sse(engine.stream(prompt, **options), request_id, effective_model),
             media_type="text/event-stream",
         )
 
@@ -267,7 +313,7 @@ async def chat_completions(request: ChatCompletionRequest) -> dict[str, Any] | S
         "id": request_id,
         "object": "chat.completion",
         "created": int(time.time()),
-        "model": request.model,
+        "model": effective_model,
         "choices": [
             {
                 "index": 0,

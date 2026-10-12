@@ -377,6 +377,59 @@ def cmd_pull(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_vision(args: argparse.Namespace) -> int:
+    from bie.core.dual_model import DualModelOrchestrator
+    from bie.core.vision import VisionEngine
+
+    orchestrator = DualModelOrchestrator()
+    v_engine = VisionEngine()
+    prompt = args.prompt or "Analyze this image in detail."
+    image_ref = args.image
+
+    payload = v_engine._resolve_image(image_ref)
+    if not payload:
+        print(f"Erro: Não foi possível carregar a imagem: {image_ref}", file=sys.stderr)
+        return 1
+
+    plan = orchestrator.arbiter.compute_plan("vision_exclusive")
+    output = {
+        "dispatched_model": orchestrator.vision_model_name,
+        "image_source": payload.source_type,
+        "image_mime": payload.mime_type,
+        "image_bytes": payload.byte_size,
+        "prompt": prompt,
+        "vram_plan": {
+            "mode": plan.mode,
+            "vision_ngl": plan.vision_ngl,
+            "vision_vram_gb": plan.vision_vram_gb,
+            "available_vram_gb": plan.available_vram_gb,
+        },
+        "status": "ready_for_vision_inference",
+    }
+    print(json.dumps(output, indent=2))
+    return 0
+
+
+def cmd_arbiter(args: argparse.Namespace) -> int:
+    from bie.core.vram_arbiter import VRAMArbiter
+
+    arbiter = VRAMArbiter()
+    plan = arbiter.compute_plan(args.mode)
+    output = {
+        "mode": plan.mode,
+        "primary_model": "Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf",
+        "primary_ngl": plan.primary_ngl,
+        "primary_vram_gb": plan.primary_vram_gb,
+        "vision_model": "gemma-4-26B-A4B-it-UD-Q4_K_XL.gguf",
+        "vision_ngl": plan.vision_ngl,
+        "vision_vram_gb": plan.vision_vram_gb,
+        "total_allocated_gb": plan.total_vram_allocated_gb,
+        "available_vram_gb": plan.available_vram_gb,
+    }
+    print(json.dumps(output, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m bie.serve")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -390,10 +443,12 @@ def build_parser() -> argparse.ArgumentParser:
         ("mcp", "iniciar servidor nativo MCP via stdio JSON-RPC 2.0", cmd_mcp),
         ("matrix", "rodar matriz de benchmark em múltiplos contextos", cmd_matrix),
         ("pull", "baixar modelos GGUF diretamente do HuggingFace", cmd_pull),
+        ("vision", "inspecionar e preparar inferência multimodal com Gemma-4", cmd_vision),
+        ("arbiter", "calcular plano de alocação de VRAM entre Coder-35B e Gemma-4", cmd_arbiter),
     ):
         p = sub.add_parser(name, help=help_text)
         if name in ("bench", "serve", "health", "inspect", "matrix"):
-            p.add_argument("--model", default="qwen3-8b")
+            p.add_argument("--model", default="Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf")
             p.add_argument("--model-path", default=None)
             p.add_argument("--context", type=int, default=4096)
             p.add_argument("--threads", type=int, default=None)
@@ -420,6 +475,17 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("model", help="ID do modelo ou repo/arquivo (ex: qwen3-30b-a3b)")
             p.add_argument("--target-dir", default="models", help="Diretório de destino")
             p.add_argument("--dry-run", action="store_true", help="Apenas simular resolução de URL")
+        elif name == "vision":
+            p.add_argument("--image", required=True, help="Caminho ou URL/base64 da imagem")
+            p.add_argument("--prompt", default="Analyze this image in detail.", help="Prompt do usuário")
+            p.add_argument("--model", default="gemma-4-26B-A4B-it-UD-Q4_K_XL.gguf")
+        elif name == "arbiter":
+            p.add_argument(
+                "--mode",
+                choices=["primary_exclusive", "vision_exclusive", "cooperative_split"],
+                default="cooperative_split",
+                help="Modo de divisão de VRAM entre os modelos",
+            )
         elif name == "serve":
             p.add_argument("--host", default="127.0.0.1")
             p.add_argument("--port", type=int, default=8080)

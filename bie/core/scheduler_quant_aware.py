@@ -105,8 +105,9 @@ def derive_from_gguf(gguf_path: str | Path, quant: str | None = None) -> dict:
 
 
 def _gguf_metadata_manual(path: Path) -> dict:
-    """Parser próprio de metadados GGUF (fallback sem llama_cpp)."""
-    raw = path.read_bytes()
+    """Parser próprio de metadados GGUF (fallback sem carregar o arquivo inteiro na memória)."""
+    with open(path, "rb") as f:
+        raw = f.read(16 * 1024 * 1024)  # 16 MB is plenty for KV metadata headers
     if raw[:4] != b"GGUF":
         return {"architecture": "", "block_count": 0, "file_type": 0}
     n_kv = struct.unpack("<Q", raw[16:24])[0]
@@ -120,10 +121,31 @@ def _gguf_metadata_manual(path: Path) -> dict:
             break
         kv[key] = value
     arch = str(kv.get("general.architecture", ""))
+    block_count = int(kv.get(f"{arch}.block_count", 0)) if arch else 0
+    file_type = int(kv.get("general.file_type", 0))
+
+    # Robust fast scan if key was located after complex arrays
+    if block_count == 0:
+        import re
+
+        matches = re.findall(rb"([a-zA-Z0-9_\.]+)\.block_count", raw)
+        for cand_arch in matches:
+            full_key = cand_arch + b".block_count"
+            idx = raw.find(full_key)
+            if idx != -1:
+                val_offset = idx + len(full_key)
+                if val_offset + 8 <= len(raw):
+                    vtype = struct.unpack("<I", raw[val_offset : val_offset + 4])[0]
+                    if vtype in (4, 5):  # u32, i32
+                        block_count = struct.unpack("<I", raw[val_offset + 4 : val_offset + 8])[0]
+                        if not arch:
+                            arch = cand_arch.decode("utf-8", errors="replace")
+                        break
+
     return {
         "architecture": arch,
-        "block_count": int(kv.get(f"{arch}.block_count", 0)),
-        "file_type": int(kv.get("general.file_type", 0)),
+        "block_count": block_count,
+        "file_type": file_type,
     }
 
 

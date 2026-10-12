@@ -19,6 +19,7 @@ class RouteDecision:
     estimated_tokens: int
     privacy_score: float  # 1.0 = fully local/sovereign, 0.0 = third-party cloud
     estimated_cost_usd: float
+    selected_model: str = "cyber-tiel-coder-35b"
 
 
 class TaskRouter:
@@ -26,6 +27,8 @@ class TaskRouter:
 
     # Cost per 1k tokens benchmark (Cloud reference: $0.003 / 1k tokens)
     CLOUD_COST_PER_1K: float = 0.003
+    DEFAULT_PRIMARY_MODEL: str = "cyber-tiel-coder-35b"
+    DEFAULT_VISION_MODEL: str = "gemma-4-26b-vision"
 
     def __init__(
         self,
@@ -46,10 +49,14 @@ class TaskRouter:
         prompt: str,
         task_type: str = "general",
         *,
+        has_images: bool = False,
         privacy_override: str | None = None,
         force_target: Literal["local", "cloud"] | None = None,
     ) -> RouteDecision:
         """Determine whether to process locally or dispatch to cloud."""
+        is_vision = has_images or task_type in ("vision", "multimodal") or "[IMAGE_" in prompt
+        local_model = self.DEFAULT_VISION_MODEL if is_vision else self.DEFAULT_PRIMARY_MODEL
+
         if force_target is not None:
             return RouteDecision(
                 target=force_target,
@@ -58,6 +65,7 @@ class TaskRouter:
                 estimated_tokens=self.estimate_tokens(prompt),
                 privacy_score=1.0 if force_target == "local" else 0.0,
                 estimated_cost_usd=0.0 if force_target == "local" else 0.005,
+                selected_model=local_model if force_target == "local" else "cloud-frontier",
             )
 
         privacy = privacy_override or self.privacy_mode
@@ -75,6 +83,7 @@ class TaskRouter:
                 estimated_tokens=tokens,
                 privacy_score=1.0,
                 estimated_cost_usd=0.0,
+                selected_model=local_model,
             )
 
         # 2. Context Window Boundary Check

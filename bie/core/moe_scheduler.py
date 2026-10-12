@@ -70,13 +70,13 @@ DEFAULT_PROFILES: dict[str, ModelProfile] = {
         expert_slots=256,
     ),
     "cyber-tiel-coder-35b": ModelProfile(
-        total_layers=48,
-        dense_layer_gb=0.18,
-        expert_cache_gb_per_slot=0.14,
+        total_layers=41,
+        dense_layer_gb=0.17,
+        expert_cache_gb_per_slot=0.12,
         expert_slots=128,
     ),
     "gemma-4-26b": ModelProfile(
-        total_layers=40,
+        total_layers=30,
         dense_layer_gb=0.20,
         expert_cache_gb_per_slot=0.10,
         expert_slots=64,

@@ -9,7 +9,7 @@
 <br/><br/>
 
 [![CI](https://github.com/benni-os/benni-inference-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/benni-os/benni-inference-engine/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/Tests-131%20Passed-00C853?style=for-the-badge&logo=pytest&logoColor=white)](#-benchmarks-rtx-4060-8gb--ryzen-5-5600x--32gb-ram)
+[![Tests](https://img.shields.io/badge/Tests-142%20Passed-00C853?style=for-the-badge&logo=pytest&logoColor=white)](#-benchmarks-rtx-4060-8gb--ryzen-5-5600x--32gb-ram)
 [![Python](https://img.shields.io/badge/Python-3.11+-7000FF?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![CUDA](https://img.shields.io/badge/CUDA-12.x-76B900?style=for-the-badge&logo=nvidia&logoColor=white)](https://developer.nvidia.com/cuda-toolkit)
 [![llama.cpp](https://img.shields.io/badge/llama.cpp-GPU%2BCPU-FF6B35?style=for-the-badge&logo=cplusplus&logoColor=white)](https://github.com/ggml-org/llama.cpp)
@@ -63,6 +63,10 @@ Project Benjamin / Antigravity / Claude / OpenAI SDK
 
 | ☔ Feature / Law | 🔧 Implementation | Impact |
 |---|---|---|
+| **Dual-Model Sovereign Engine** | Default primary Coder (`Cyber-Tiel-Coder-35B`) + secondary Vision (`Gemma-4-26B`) | Unified code mastery and multimodal vision intelligence |
+| **Autonomous Dual Orchestrator** | Automatic request dispatch based on modal inspection (`dual_model.py`) | Zero manual configuration for text vs image queries |
+| **Multimodal Vision Engine** | OpenAI vision parser, base64/local image ingest, token injection (`vision.py`) | Native visual understanding without cloud egress |
+| **Cooperative VRAM Arbiter** | Dynamic layer allocation & cooperative split on 8GB GPU (`vram_arbiter.py`) | Concurrent execution of 35B and 26B without OOM |
 | **GPU+CPU Hybrid MoE** | Attention + shared layers on VRAM; routed FFN experts on RAM (`moe_scheduler.py`) | 30B+ MoE viable on 8GB consumer GPUs |
 | **Skill 81 Ceiling Extraction** | SA-81A Role Lock, SA-81B Causal Pruning, SA-81C Forced CoT, SA-81E Profiles | Eliminates behavioral capability ceiling gap |
 | **Quantized KV Cache** | `q4_0`, `q4_1`, `q8_0`, `f16` dynamic allocation (`kv_quant.py`) | **>70% VRAM reduction** (1.7 GB vs 6.1 GB at 32k) |
@@ -95,27 +99,33 @@ pip install -e ".[cuda]"
 # 1. Download model from Hugging Face
 bie pull qwen3-30b-a3b
 
-# 2. Inspect hardware offload allocation (no GPU load)
-bie inspect --model qwen3-30b-a3b
+# 2. Compute dynamic VRAM layer allocation between Coder-35B and Gemma-4
+bie arbiter --mode cooperative_split
 
-# 3. Serve OpenAI-compatible API
-bie serve --model qwen3-30b-a3b --port 8080
+# 3. Serve OpenAI-compatible API (default: Cyber-Tiel-Coder-35B)
+bie serve --port 8080
 ```
 
 ### Complete CLI Commands
 
 ```bash
-# Serve model over HTTP with Uvicorn
-bie serve --model qwen3-8b --port 8080
+# Serve model over HTTP with Uvicorn (default: Cyber-Tiel-Coder-35B)
+bie serve --port 8080
 
 # Benchmark single decode and prefill speed
-bie bench --model qwen3-8b --reps 3
+bie bench --reps 3
 
-# Run automated multi-context benchmark matrix (1k, 4k, 8k, 16k)
-bie matrix --model qwen3-8b --contexts 1024 4096 8192
+# Calculate cooperative GPU layer split between Coder and Vision
+bie arbiter --mode cooperative_split
 
-# Inspeciona hardware e metadados de GGUF
-bie inspect --model qwen3-30b-a3b
+# Run multimodal vision analysis with Gemma-4
+bie vision --image diagram.png --prompt "Explain the data flow"
+
+# Run automated multi-context benchmark matrix (1k, 4k, 8k)
+bie matrix --contexts 1024 4096 8192
+
+# Inspeciona hardware e metadados de GGUF com safe-streaming parser
+bie inspect --model Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf
 
 # Audit text against hallucination, drift, and unanchored claims (SA-81D)
 bie guard --prompt "What is BIE?" --output "[VERIFIED] BIE is Benni Inference Engine."
@@ -140,16 +150,29 @@ from openai import OpenAI
 
 client = OpenAI(base_url="http://localhost:8080/v1", api_key="bie")
 
-# 1. Chat Completion with Skill 81 & Structured Schema
+# 1. Chat Completion with Skill 81 & Structured Schema (Default: Cyber-Tiel-Coder-35B)
 response = client.chat.completions.create(
-    model="qwen3-30b-a3b",
-    messages=[{"role": "user", "content": "Analyze system architecture"}],
+    model="Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf",
+    messages=[{"role": "user", "content": "Analyze system architecture and write zero-copy parser"}],
     extra_body={"task_type": "BRAVO", "apply_skill81": True, "guard": True}
 )
 
-# 2. Vector Embeddings
+# 2. Multimodal Vision Completion (Auto-routed to Gemma-4-26B)
+vision_response = client.chat.completions.create(
+    model="gemma-4-26B-A4B-it-UD-Q4_K_XL.gguf",
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "Analyze this architecture diagram:"},
+                {"type": "image_url", "image_url": {"url": "data:image/png;base64,iVBORw0KGgo..."}},
+            ],
+        }
+    ],
+)
+
+# 3. Vector Embeddings
 emb = client.embeddings.create(
-    model="qwen3-30b-a3b",
     input="Mixture-of-Experts memory optimization"
 )
 print("Vector length:", len(emb.data[0].embedding))
@@ -157,10 +180,11 @@ print("Vector length:", len(emb.data[0].embedding))
 
 ### REST API Endpoints
 
-- `POST /v1/chat/completions` — Streaming, function/tool calling (`tools`), JSON Schema, Skill 81 injection.
+- `POST /v1/chat/completions` — Streaming, function/tool calling (`tools`), multimodal vision (`image_url`), JSON Schema, Skill 81 injection.
 - `POST /v1/completions` — Raw completion generation with usage token tracking.
 - `POST /v1/embeddings` — Unit-normalized $L_2$ vector embeddings.
-- `GET /v1/models` — List of available and active models.
+- `GET /v1/models` — List of active models (includes primary coder and secondary vision models).
+- `GET /v1/bie/arbiter` — Dynamic GPU layer budgeting & cooperative split calculation.
 - `GET /v1/bie/metrics` — Live VRAM usage, KV current tokens, and hot-pinned experts.
 - `GET /v1/bie/telemetry` — Rolling P50/P90/P99 latency, tokens/s, and ASCII MoE heatmap.
 - `GET /v1/bie/health/detailed` — Real-time RAM, VRAM, and GPU thermal/power diagnostics.
@@ -187,14 +211,14 @@ print("Vector length:", len(emb.data[0].embedding))
 
 ## 📦 Supported Models & Hardware Placement
 
-| Model | Architecture | Active Params | VRAM | RAM | Speed (RTX 4060) | Status |
-|---|---|---|---|---|---|---|
-| **Qwen3-30B-A3B** | MoE (128 exp) | ~3B | ~5.5 GB | ~17 GB | **~30 tok/s** | 🟢 Supported |
-| **Cyber-Tiel-Coder-35B** | MoE (128 exp) | ~3.5B | ~5.8 GB | ~18 GB | **~28 tok/s** | 🟢 Supported |
-| **Gemma-4-26B** | MoE (64 exp) | ~4B | ~5.4 GB | ~16 GB | **~26 tok/s** | 🟢 Supported |
-| **Kimi K2 Distill** | Dense | ~32B | ~7.0 GB | ~20 GB | ~15–20 tok/s | 🟡 Beta |
-| **Qwen3-235B-A22B** | MoE (256 exp) | ~22B | ~6.0 GB | ~26 GB | ~4–6 tok/s | 🟡 Beta |
-| **DeepSeek-V4** | MoE (256 exp) | ~37B | ~7.0 GB | ~28 GB | ~3–5 tok/s | 🔵 Roadmap |
+| Model | Architecture | Role | Active Params | VRAM | RAM | Speed (RTX 4060) | Status |
+|---|---|---|---|---|---|---|---|
+| **Cyber-Tiel-Coder-35B** | MoE (qwen35moe, 41L) | 👑 **Default Primary Coder** | ~3.5B | ~5.8 GB | ~18 GB | **~28 tok/s** | 🟢 **Primary Default** |
+| **Gemma-4-26B** | MoE (gemma4, 30L) | 👁️ **Default Secondary Vision** | ~4B | ~5.0 GB | ~15 GB | **~26 tok/s** | 🟢 **Vision Default** |
+| **Qwen3-30B-A3B** | MoE (128 exp) | General Reasoning | ~3B | ~5.5 GB | ~17 GB | **~30 tok/s** | 🟢 Supported |
+| **Kimi K2 Distill** | Dense | Reasoning | ~32B | ~7.0 GB | ~20 GB | ~15–20 tok/s | 🟡 Beta |
+| **Qwen3-235B-A22B** | MoE (256 exp) | Frontier Scale | ~22B | ~6.0 GB | ~26 GB | ~4–6 tok/s | 🟡 Beta |
+| **DeepSeek-V4** | MoE (256 exp) | Frontier Scale | ~37B | ~7.0 GB | ~28 GB | ~3–5 tok/s | 🔵 Roadmap |
 
 <br/>
 
@@ -212,8 +236,9 @@ benni-inference-engine/
 │   │   ├── backend.py                # Llama.cpp backend adapter
 │   │   ├── chunker.py                # Semantic chunker & context compressor
 │   │   ├── continuous_batcher.py     # Multi-slot continuous batching
+│   │   ├── dual_model.py             # Dual-model autonomous orchestrator (Coder+Vision)
 │   │   ├── embeddings.py             # Vector embeddings & cosine similarity
-│   │   ├── engine.py                 # Core BIE facade with lifecycle & chat
+│   │   ├── engine.py                 # Core BIE facade with lifecycle, chat & vision
 │   │   ├── grammar_guard.py          # JSON Schema enforcer & syntax repair
 │   │   ├── hot_pin.py                # Adaptive expert pinning with EWMA decay
 │   │   ├── kv_manager.py             # KV cache with SA-81B causal pruning
@@ -223,21 +248,23 @@ benni-inference-engine/
 │   │   ├── paged_cache.py            # Non-contiguous virtual block table pager
 │   │   ├── prompt_templates.py       # ChatML, Llama-3, DeepSeek, Alpaca templates
 │   │   ├── reflection_loop.py        # Self-correction feedback critique loops
-│   │   ├── router.py                 # Hybrid task router (local vs cloud)
-│   │   ├── scheduler_quant_aware.py  # Quant-aware dense layer profiler
+│   │   ├── router.py                 # Hybrid task router (local vs cloud + vision)
+│   │   ├── scheduler_quant_aware.py  # Safe streaming GGUF metadata profiler
 │   │   ├── speculative.py            # Speculative decoding rejection sampler
-│   │   └── stop_sequences.py         # Multi-token streaming stop sequence matcher
+│   │   ├── stop_sequences.py         # Multi-token streaming stop sequence matcher
+│   │   ├── vision.py                 # Multimodal Vision Engine (OpenAI format, b64/file)
+│   │   └── vram_arbiter.py           # Cooperative VRAM layer arbiter (8GB GPU split)
 │   ├── models/
-│   │   ├── registry.json             # Supported models catalog
+│   │   ├── registry.json             # Supported models catalog (primary + vision default)
 │   │   └── profiles/                 # SA-81E model parameters & offload configs
 │   ├── serve/
 │   │   ├── health_monitor.py         # Real-time VRAM, RAM, and thermal monitor
 │   │   ├── llama_server_adapter.py   # HTTP adapter for native llama-server
 │   │   ├── mcp_bridge.py             # Project Benjamin MCP JSON-RPC 2.0 server
-│   │   ├── openai_compat.py          # OpenAI-compatible FastAPI endpoints
+│   │   ├── openai_compat.py          # OpenAI-compatible FastAPI endpoints (/chat, /arbiter)
 │   │   ├── telemetry.py              # Latency percentiles & ASCII MoE heatmap
 │   │   ├── tool_caller.py            # OpenAI Function/Tool Calling parser
-│   │   └── __main__.py               # CLI entrypoint (bench, serve, matrix, pull...)
+│   │   └── __main__.py               # CLI entrypoint (bench, serve, vision, arbiter...)
 │   ├── skill81/
 │   │   ├── ceiling_extractor.py      # SA-81A/B/C/E Prompt Architecture
 │   │   ├── hallucination_guard.py    # SA-81D Fact-claim & drift monitor
@@ -246,7 +273,7 @@ benni-inference-engine/
 │       ├── bench_matrix.py           # Multi-context automated benchmark matrix
 │       ├── hub_downloader.py         # HuggingFace GGUF sync & downloader
 │       └── vram_profiler.py          # Offline/Live VRAM and PCIe profiler
-├── tests/                            # 131 unit tests (100% passing)
+├── tests/                            # 142 unit tests (100% passing)
 ├── pyproject.toml
 ├── LICENSE
 ├── ROADMAP.md

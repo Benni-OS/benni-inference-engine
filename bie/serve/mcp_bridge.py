@@ -23,6 +23,9 @@ class BIETool:
     _in_memory_engine: Any | None = None
     _guard: HallucinationGuard = HallucinationGuard()
 
+    DEFAULT_PRIMARY_MODEL: str = "Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf"
+    DEFAULT_VISION_MODEL: str = "gemma-4-26B-A4B-it-UD-Q4_K_XL.gguf"
+
     @classmethod
     def set_in_memory_engine(cls, engine: Any | None) -> None:
         """Attach a local BIEEngine instance for zero-HTTP direct in-process execution."""
@@ -33,7 +36,7 @@ class BIETool:
         cls,
         prompt: str,
         task_type: str = "general",
-        model: str = "qwen3-30b-a3b",
+        model: str = DEFAULT_PRIMARY_MODEL,
         temperature: float = 0.7,
         max_tokens: int = 2048,
     ) -> str:
@@ -64,9 +67,9 @@ class BIETool:
     @classmethod
     async def chat(
         cls,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         task_type: str = "general",
-        model: str = "qwen3-30b-a3b",
+        model: str = DEFAULT_PRIMARY_MODEL,
         temperature: float = 0.7,
         max_tokens: int = 2048,
         apply_skill81: bool = True,
@@ -98,6 +101,44 @@ class BIETool:
             return resp.json()
 
     @classmethod
+    async def vision_infer(
+        cls,
+        image: str,
+        prompt: str = "Analyze this image in detail.",
+        model: str = DEFAULT_VISION_MODEL,
+    ) -> str:
+        """Route multimodal image and text query to Gemma-4 vision."""
+        from pathlib import Path
+        url_ref = image if image.startswith("data:") or image.startswith("http") else str(Path(image).resolve())
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": url_ref}},
+                ],
+            }
+        ]
+        res = await cls.chat(messages, task_type="vision", model=model)
+        if "choices" in res:
+            return str(res["choices"][0]["message"]["content"])
+        return str(res)
+
+    @classmethod
+    def vram_arbiter_plan(cls, mode: str = "cooperative_split") -> dict[str, Any]:
+        from bie.core.vram_arbiter import VRAMArbiter
+        plan = VRAMArbiter().compute_plan(mode)  # type: ignore
+        return {
+            "mode": plan.mode,
+            "primary_ngl": plan.primary_ngl,
+            "vision_ngl": plan.vision_ngl,
+            "primary_vram_gb": plan.primary_vram_gb,
+            "vision_vram_gb": plan.vision_vram_gb,
+            "total_allocated_gb": plan.total_vram_allocated_gb,
+            "available_vram_gb": plan.available_vram_gb,
+        }
+
+    @classmethod
     def guard_check(cls, output: str, prompt: str) -> dict[str, Any]:
         """Audit text for epistemic drift and hallucination."""
         return cls._guard.check(output, prompt)
@@ -120,7 +161,7 @@ MCP_TOOLS = [
             "type": "object",
             "properties": {
                 "prompt": {"type": "string", "description": "User prompt text"},
-                "model": {"type": "string", "default": "qwen3-30b-a3b"},
+                "model": {"type": "string", "default": "Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf"},
                 "task_type": {
                     "type": "string",
                     "enum": ["DELTA", "CHARLIE", "BRAVO", "ALPHA", "FOXTROT", "general"],
@@ -130,6 +171,34 @@ MCP_TOOLS = [
                 "max_tokens": {"type": "integer", "default": 2048},
             },
             "required": ["prompt"],
+        },
+    },
+    {
+        "name": "bie_vision_infer",
+        "description": "Execute multimodal image understanding using Gemma-4-26B vision model.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "image": {"type": "string", "description": "Local path, URL, or data:image base64 URI"},
+                "prompt": {"type": "string", "default": "Analyze this image in detail.", "description": "Question or analysis prompt"},
+                "model": {"type": "string", "default": "gemma-4-26B-A4B-it-UD-Q4_K_XL.gguf"},
+            },
+            "required": ["image"],
+        },
+    },
+    {
+        "name": "bie_vram_arbiter",
+        "description": "Calculate optimal GPU layer allocation between Coder-35B and Gemma-4-26B.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "mode": {
+                    "type": "string",
+                    "enum": ["primary_exclusive", "vision_exclusive", "cooperative_split"],
+                    "default": "cooperative_split",
+                    "description": "Offload allocation mode",
+                },
+            },
         },
     },
     {
@@ -197,11 +266,21 @@ def run_mcp_server() -> None:
                     res = await BIETool.complete(
                         prompt=args["prompt"],
                         task_type=args.get("task_type", "general"),
-                        model=args.get("model", "qwen3-30b-a3b"),
+                        model=args.get("model", BIETool.DEFAULT_PRIMARY_MODEL),
                         temperature=float(args.get("temperature", 0.7)),
                         max_tokens=int(args.get("max_tokens", 2048)),
                     )
                     content = [{"type": "text", "text": res}]
+                elif tool_name == "bie_vision_infer":
+                    res = await BIETool.vision_infer(
+                        image=args["image"],
+                        prompt=args.get("prompt", "Analyze this image in detail."),
+                        model=args.get("model", BIETool.DEFAULT_VISION_MODEL),
+                    )
+                    content = [{"type": "text", "text": res}]
+                elif tool_name == "bie_vram_arbiter":
+                    res = BIETool.vram_arbiter_plan(mode=args.get("mode", "cooperative_split"))
+                    content = [{"type": "text", "text": json.dumps(res, indent=2)}]
                 elif tool_name == "bie_guard_check":
                     res = BIETool.guard_check(output=args["output"], prompt=args["prompt"])
                     content = [{"type": "text", "text": json.dumps(res, indent=2)}]

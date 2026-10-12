@@ -1,0 +1,32 @@
+{
+  "model_id": "gemma-4-26b-vision",
+  "name": "Gemma-4-26B-A4B-it",
+  "total_layers": 30,
+  "dense_layer_gb": 0.20,
+  "expert_cache_gb_per_slot": 0.11,
+  "expert_slots": 64,
+  "role": "secondary_vision",
+  "multimodal": true,
+  "skill81_profile": {
+    "sa81e_name": "Gemma-4-26B-Vision",
+    "strengths": ["visual reasoning", "chart analysis", "UI inspection", "multimodal OCR", "spatial diagramming"],
+    "weaknesses": ["pure assembly math"],
+    "optimizations": [
+      "visual_evidence_anchor",
+      "spatial_bounding_box_precision"
+    ]
+  },
+  "inference_params": {
+    "temperature": 0.4,
+    "top_p": 0.85,
+    "top_k": 30,
+    "repeat_penalty": 1.08
+  },
+  "moe_offload": {
+    "pattern": "\\.ffn_.*_exps\\.=CPU",
+    "flash_attention": true,
+    "kv_cache_type": "q4_0"
+  },
+  "ctx_size": 16384,
+  "prompt_template": "chatml"
+}

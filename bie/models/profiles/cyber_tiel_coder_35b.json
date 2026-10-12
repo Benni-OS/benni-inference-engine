@@ -1,0 +1,32 @@
+{
+  "model_id": "cyber-tiel-coder-35b",
+  "name": "Cyber-Tiel-Coder-35B-A3B",
+  "total_layers": 41,
+  "dense_layer_gb": 0.17,
+  "expert_cache_gb_per_slot": 0.13,
+  "expert_slots": 128,
+  "role": "primary_coder",
+  "skill81_profile": {
+    "sa81e_name": "Cyber-Tiel-Coder-35B",
+    "strengths": ["coding", "architecture", "debugging", "typing", "refactoring", "zero-mock implementation"],
+    "weaknesses": ["verbosity on conversational chit-chat"],
+    "optimizations": [
+      "format_lock_strict",
+      "explicit_success_criterion",
+      "code_block_zero_mock"
+    ]
+  },
+  "inference_params": {
+    "temperature": 0.2,
+    "top_p": 0.90,
+    "top_k": 40,
+    "repeat_penalty": 1.05
+  },
+  "moe_offload": {
+    "pattern": "\\.ffn_.*_exps\\.=CPU",
+    "flash_attention": true,
+    "kv_cache_type": "q4_0"
+  },
+  "ctx_size": 32768,
+  "prompt_template": "chatml"
+}

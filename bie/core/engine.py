@@ -11,12 +11,15 @@ from typing import Any
 
 from .admission import AdmissionController
 from .backend import BackendConfig, LlamaCppBackend
+from .dual_model import DualModelOrchestrator
 from .embeddings import EmbeddingsEngine
 from .grammar_guard import GrammarGuard
 from .hot_pin import HotPinManager
 from .kv_manager import KVManager
 from .moe_scheduler import MoEScheduler
 from .router import TaskRouter
+from .vision import VisionEngine
+from .vram_arbiter import VRAMArbiter
 from ..serve.telemetry import TelemetryEngine
 from ..serve.tool_caller import ToolCallingEngine
 from ..skill81.ceiling_extractor import CeilingExtractor
@@ -26,12 +29,15 @@ from ..skill81.hallucination_guard import HallucinationGuard
 class BIEEngine:
     """Inference facade for the local BIE runtime integrating Skill 81, KV compression,
 
-    admission control, speculative decoding, and tool calling.
+    admission control, speculative decoding, tool calling, and dual-model vision.
     """
+
+    DEFAULT_MODEL: str = "Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf"
+    DEFAULT_VISION_MODEL: str = "gemma-4-26B-A4B-it-UD-Q4_K_XL.gguf"
 
     def __init__(
         self,
-        model_name: str,
+        model_name: str = DEFAULT_MODEL,
         port: int = 8080,
         *,
         model_path: str | Path | None = None,
@@ -60,16 +66,29 @@ class BIEEngine:
         self.admission = AdmissionController()
         self.router = TaskRouter(local_context_limit=self.n_ctx)
         self.telemetry = TelemetryEngine()
+        self.vision_engine = VisionEngine()
+        self.arbiter = VRAMArbiter()
+        self.dual_orchestrator = DualModelOrchestrator(
+            primary_model=self.model_name,
+            vision_model=self.DEFAULT_VISION_MODEL,
+        )
 
     def resolve_model_path(self) -> Path:
-        """Resolve a GGUF path from an explicit path or BIE_MODEL_DIR."""
+        """Resolve a GGUF path from an explicit path, BIE_MODEL_DIR, or local models dirs."""
         candidate = self.model_path or Path(self.model_name)
         if candidate.is_file():
             return candidate
         model_dir = Path(os.getenv("BIE_MODEL_DIR", "models"))
-        candidates = [model_dir / self.model_name]
-        if not self.model_name.endswith(".gguf"):
-            candidates.append(model_dir / f"{self.model_name}.gguf")
+        search_dirs = [
+            model_dir,
+            Path("bie/models"),
+            Path(__file__).parents[1] / "models",
+        ]
+        candidates: list[Path] = []
+        for s_dir in search_dirs:
+            candidates.append(s_dir / self.model_name)
+            if not self.model_name.endswith(".gguf"):
+                candidates.append(s_dir / f"{self.model_name}.gguf")
         for path in candidates:
             if path.is_file():
                 return path
@@ -155,8 +174,20 @@ class BIEEngine:
             raise ValueError("messages must be a non-empty list")
         model = self._require_model()
 
+        # 0. Multimodal image extraction & prompt formatting
+        normalized_messages: list[dict[str, Any]] = []
+        for m in messages:
+            content = m.get("content")
+            if isinstance(content, list):
+                text, images = self.vision_engine.extract_image_payloads(content)
+                if images:
+                    text = self.vision_engine.format_vision_prompt(text, len(images))
+                normalized_messages.append({**m, "content": text})
+            else:
+                normalized_messages.append(dict(m))
+        effective_messages = normalized_messages
+
         # 1. Inject Tool Calling prompts if tools specified
-        effective_messages = messages
         if tools:
             effective_messages = ToolCallingEngine.inject_tools(effective_messages, tools)
 
@@ -244,6 +275,32 @@ class BIEEngine:
             response_payload["guard"] = self.guard.check(text, last_prompt)
 
         return response_payload
+
+    def vision(
+        self,
+        image_input: str | Path | bytes,
+        prompt: str = "Analyze this image in detail.",
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Convenience method for multimodal vision inference."""
+        if isinstance(image_input, bytes):
+            import base64
+
+            b64_str = base64.b64encode(image_input).decode("utf-8")
+            img_ref = f"data:image/jpeg;base64,{b64_str}"
+        else:
+            img_ref = str(image_input)
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": img_ref}},
+                ],
+            }
+        ]
+        return self.chat(messages, task_type="vision", **kwargs)
 
     def stream(self, prompt: str, **kwargs: Any) -> Iterator[str]:
         """Yield generated text chunks from llama.cpp."""
