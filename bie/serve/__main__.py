@@ -350,6 +350,23 @@ def cmd_mcp(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_matrix(args: argparse.Namespace) -> int:
+    from bie.tools.bench_matrix import BenchMatrixRunner
+
+    runner = BenchMatrixRunner(
+        args.model,
+        contexts=args.contexts,
+        max_tokens=args.max_tokens,
+        reps=args.reps,
+    )
+    res = runner.run_matrix()
+    if args.json:
+        print(json.dumps(res, indent=2))
+    else:
+        print(runner.format_markdown_table(res))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m bie.serve")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -361,9 +378,10 @@ def build_parser() -> argparse.ArgumentParser:
         ("inspect", "inspecionar metadados de modelo e plano de offload", cmd_inspect),
         ("guard", "verificar texto contra alucinação e drift (SA-81D)", cmd_guard),
         ("mcp", "iniciar servidor nativo MCP via stdio JSON-RPC 2.0", cmd_mcp),
+        ("matrix", "rodar matriz de benchmark em múltiplos contextos", cmd_matrix),
     ):
         p = sub.add_parser(name, help=help_text)
-        if name in ("bench", "serve", "health", "inspect"):
+        if name in ("bench", "serve", "health", "inspect", "matrix"):
             p.add_argument("--model", default="qwen3-8b")
             p.add_argument("--model-path", default=None)
             p.add_argument("--context", type=int, default=4096)
@@ -381,6 +399,11 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("--prompt-tokens", type=int, default=512)
             p.add_argument("--max-tokens", type=int, default=128)
             p.add_argument("--reps", type=int, default=3)
+            p.add_argument("--json", action="store_true")
+        elif name == "matrix":
+            p.add_argument("--contexts", nargs="+", type=int, default=[1024, 4096, 8192])
+            p.add_argument("--max-tokens", type=int, default=32)
+            p.add_argument("--reps", type=int, default=1)
             p.add_argument("--json", action="store_true")
         elif name == "serve":
             p.add_argument("--host", default="127.0.0.1")

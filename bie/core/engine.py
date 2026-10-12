@@ -9,16 +9,25 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
+from .admission import AdmissionController
 from .backend import BackendConfig, LlamaCppBackend
+from .embeddings import EmbeddingsEngine
+from .grammar_guard import GrammarGuard
 from .hot_pin import HotPinManager
 from .kv_manager import KVManager
 from .moe_scheduler import MoEScheduler
+from .router import TaskRouter
+from ..serve.telemetry import TelemetryEngine
+from ..serve.tool_caller import ToolCallingEngine
 from ..skill81.ceiling_extractor import CeilingExtractor
 from ..skill81.hallucination_guard import HallucinationGuard
 
 
 class BIEEngine:
-    """Inference facade for the local BIE runtime integrating Skill 81, KV compression, and expert hot-pinning."""
+    """Inference facade for the local BIE runtime integrating Skill 81, KV compression,
+
+    admission control, speculative decoding, and tool calling.
+    """
 
     def __init__(
         self,
@@ -42,11 +51,15 @@ class BIEEngine:
         self.backend: LlamaCppBackend | None = None
         self.runtime_config: dict[str, Any] | None = None
 
-        # Integrated Skill 81 & memory management components
+        # Integrated components
         self.ceiling_extractor = CeilingExtractor()
         self.guard = HallucinationGuard()
         self.kv_manager = KVManager(ctx_size=self.n_ctx)
         self.hot_pin = HotPinManager(n_layers=48, n_experts=128)
+        self.embeddings = EmbeddingsEngine()
+        self.admission = AdmissionController()
+        self.router = TaskRouter(local_context_limit=self.n_ctx)
+        self.telemetry = TelemetryEngine()
 
     def resolve_model_path(self) -> Path:
         """Resolve a GGUF path from an explicit path or BIE_MODEL_DIR."""
@@ -90,12 +103,41 @@ class BIEEngine:
             raise RuntimeError("BIEEngine is not loaded. Call load() first.")
         return self.model
 
-    def complete(self, prompt: str, **kwargs: Any) -> dict[str, Any]:
-        """Generate a non-streaming completion."""
+    def embed(self, texts: str | list[str]) -> list[list[float]]:
+        """Generate normalized vector embeddings."""
+        return self.embeddings.embed(texts, model=self.model)
+
+    def complete(
+        self,
+        prompt: str,
+        *,
+        schema: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Generate a non-streaming completion with optional schema enforcement."""
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
         model = self._require_model()
-        return model(prompt, **kwargs)
+
+        effective_prompt = prompt
+        if schema:
+            effective_prompt = GrammarGuard.format_prompt_for_schema(prompt, schema)
+
+        t0 = time.time()
+        result = model(effective_prompt, **kwargs)
+        elapsed = max(1e-6, time.time() - t0)
+
+        # Record telemetry
+        text = result.get("choices", [{}])[0].get("text", "") if isinstance(result, dict) else str(result)
+        tokens_est = self.kv_manager.estimate_tokens(text)
+        self.telemetry.record_request(latency_s=elapsed, tokens_count=tokens_est)
+
+        if schema:
+            val_report = GrammarGuard.validate(text, schema=schema)
+            if isinstance(result, dict):
+                result["schema_validation"] = val_report
+
+        return result
 
     def chat(
         self,
@@ -104,26 +146,38 @@ class BIEEngine:
         task_type: str = "general",
         apply_skill81: bool = True,
         guard: bool = False,
+        tools: list[dict[str, Any]] | None = None,
+        schema: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        """Execute chat completion with Skill 81 steering, KV compression, and optional guard check."""
+        """Execute chat completion with Skill 81 steering, KV compression, tool calling, and schema constraints."""
         if not messages:
             raise ValueError("messages must be a non-empty list")
         model = self._require_model()
 
-        # Apply Skill 81 steering if enabled
+        # 1. Inject Tool Calling prompts if tools specified
         effective_messages = messages
+        if tools:
+            effective_messages = ToolCallingEngine.inject_tools(effective_messages, tools)
+
+        # 2. Apply Skill 81 steering if enabled
         if apply_skill81:
             effective_messages = self.ceiling_extractor.extract(
-                messages,
+                effective_messages,
                 model_profile={"model_id": self.model_name},
                 task_type=task_type,
             )
 
-        # Apply KV context management & pruning
+        # 3. Apply Schema constraint to last user turn if schema given
+        if schema:
+            last_msg = dict(effective_messages[-1])
+            last_msg["content"] = GrammarGuard.format_prompt_for_schema(str(last_msg.get("content", "")), schema)
+            effective_messages = effective_messages[:-1] + [last_msg]
+
+        # 4. Apply KV context management & pruning
         effective_messages = self.kv_manager.compress(effective_messages)
 
-        # Render prompt string (or format for backend)
+        # 5. Format prompt string
         prompt_str = "\n".join(f"{m.get('role', 'user')}: {m.get('content', '')}" for m in effective_messages)
 
         t0 = time.time()
@@ -142,6 +196,23 @@ class BIEEngine:
         completion_tokens = self.kv_manager.estimate_tokens(text)
         total_tokens = prompt_tokens + completion_tokens
 
+        # Record telemetry
+        self.telemetry.record_request(
+            latency_s=elapsed,
+            decode_tok_s=round(completion_tokens / elapsed, 1) if elapsed > 0 else 0.0,
+            tokens_count=completion_tokens,
+        )
+
+        # Parse tool calls if tools were provided or detected
+        tool_calls = ToolCallingEngine.parse_tool_calls(text) if (tools or "<tool_call>" in text) else []
+
+        assistant_message: dict[str, Any] = {
+            "role": "assistant",
+            "content": text,
+        }
+        if tool_calls:
+            assistant_message["tool_calls"] = tool_calls
+
         response_payload: dict[str, Any] = {
             "id": f"chatcmpl-{uuid.uuid4().hex}",
             "object": "chat.completion",
@@ -150,8 +221,8 @@ class BIEEngine:
             "choices": [
                 {
                     "index": 0,
-                    "message": {"role": "assistant", "content": text},
-                    "finish_reason": "stop",
+                    "message": assistant_message,
+                    "finish_reason": "tool_calls" if tool_calls else "stop",
                 }
             ],
             "usage": {
@@ -164,6 +235,9 @@ class BIEEngine:
                 "tokens_per_second": round(completion_tokens / elapsed, 1) if elapsed > 0 else 0.0,
             },
         }
+
+        if schema:
+            response_payload["schema_validation"] = GrammarGuard.validate(text, schema=schema)
 
         if guard:
             last_prompt = messages[-1].get("content", "") if messages else prompt_str
