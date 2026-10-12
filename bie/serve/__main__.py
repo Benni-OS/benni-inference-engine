@@ -367,6 +367,16 @@ def cmd_matrix(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_pull(args: argparse.Namespace) -> int:
+    from bie.tools.hub_downloader import ModelHubDownloader
+
+    downloader = ModelHubDownloader(target_dir=args.target_dir)
+    print(f"Resolvendo e baixando {args.model}...")
+    dest = downloader.download(args.model, dry_run=args.dry_run)
+    print(f"Modelo pronto em: {dest}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m bie.serve")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -379,6 +389,7 @@ def build_parser() -> argparse.ArgumentParser:
         ("guard", "verificar texto contra alucinação e drift (SA-81D)", cmd_guard),
         ("mcp", "iniciar servidor nativo MCP via stdio JSON-RPC 2.0", cmd_mcp),
         ("matrix", "rodar matriz de benchmark em múltiplos contextos", cmd_matrix),
+        ("pull", "baixar modelos GGUF diretamente do HuggingFace", cmd_pull),
     ):
         p = sub.add_parser(name, help=help_text)
         if name in ("bench", "serve", "health", "inspect", "matrix"):
@@ -405,6 +416,10 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("--max-tokens", type=int, default=32)
             p.add_argument("--reps", type=int, default=1)
             p.add_argument("--json", action="store_true")
+        elif name == "pull":
+            p.add_argument("model", help="ID do modelo ou repo/arquivo (ex: qwen3-30b-a3b)")
+            p.add_argument("--target-dir", default="models", help="Diretório de destino")
+            p.add_argument("--dry-run", action="store_true", help="Apenas simular resolução de URL")
         elif name == "serve":
             p.add_argument("--host", default="127.0.0.1")
             p.add_argument("--port", type=int, default=8080)

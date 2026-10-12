@@ -4,12 +4,12 @@
 
 <br/>
 
-<img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=20&duration=3000&pause=800&color=7000FF&center=true&vCenter=true&multiline=true&repeat=true&width=900&height=80&lines=MoE+Offload.+GPU%2BCPU+Hybrid.+Consumer+Hardware.;Skill+81+Ceiling+Extraction+built-in.;OpenAI-Compatible+%E2%80%94+Project+Benjamin+Native." alt="Typing SVG" />
+<img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=20&duration=3000&pause=800&color=7000FF&center=true&vCenter=true&multiline=true&repeat=true&width=900&height=80&lines=MoE+Offload.+GPU%2BCPU+Hybrid.+Consumer+Hardware.;Skill+81+Ceiling+Extraction+built-in.;OpenAI-Compatible+%E2%80%94+Project+Benjamin+Native.;Speculative+Decoding+%2B+Quantized+KV+Cache." alt="Typing SVG" />
 
 <br/><br/>
 
 [![CI](https://github.com/benni-os/benni-inference-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/benni-os/benni-inference-engine/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/Tests-97%20Passed-00C853?style=for-the-badge&logo=pytest&logoColor=white)](#-benchmarks-rtx-4060-8gb--ryzen-5-5600x--32gb-ram)
+[![Tests](https://img.shields.io/badge/Tests-131%20Passed-00C853?style=for-the-badge&logo=pytest&logoColor=white)](#-benchmarks-rtx-4060-8gb--ryzen-5-5600x--32gb-ram)
 [![Python](https://img.shields.io/badge/Python-3.11+-7000FF?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![CUDA](https://img.shields.io/badge/CUDA-12.x-76B900?style=for-the-badge&logo=nvidia&logoColor=white)](https://developer.nvidia.com/cuda-toolkit)
 [![llama.cpp](https://img.shields.io/badge/llama.cpp-GPU%2BCPU-FF6B35?style=for-the-badge&logo=cplusplus&logoColor=white)](https://github.com/ggml-org/llama.cpp)
@@ -28,77 +28,143 @@
 
 ## ⭐ What Is benni-inference-engine?
 
-**benni-inference-engine** (`BIE`) is the local inference runtime of the **[Benni OS](https://github.com/benni-os)** ecosystem — a GPU+CPU hybrid engine that runs frontier Mixture-of-Experts models on consumer hardware, with **Skill 81 Ceiling Extraction** built into every inference call.
+**benni-inference-engine** (`BIE`) is the sovereign local inference runtime of the **[Benni OS](https://github.com/benni-os)** ecosystem — a GPU+CPU hybrid engine that runs frontier Mixture-of-Experts models on consumer hardware, with **Skill 81 Ceiling Extraction**, **Quantized KV Cache**, **Speculative Decoding**, and **Project Benjamin Native MCP** built into every inference call.
 
-Every other inference runtime treats the model as a black box. `BIE` treats the model as a cognitive system to be engineered — injecting the right prompt architecture, context compression, and behavioral profile per model, per task, automatically.
+Every other inference runtime treats the model as a black box. `BIE` treats the model as a cognitive system to be engineered — injecting the right prompt architecture, context compression, behavioral profile, and cyber-security guardrails automatically.
 
 ```
-Project Benjamin / Any MCP Client / OpenAI SDK
-         ↓ POST /v1/chat/completions  (OpenAI-compatible)
-    ┌─────────────────────────────────────────┐
-    │         benni-inference-engine          │
-    │                                         │
-    │  ┌─────────────┐  ┌──────────────────┐  │
-    │  │ Skill 81    │  │  MoE Scheduler   │  │
-    │  │ Ceiling     │→ │  GPU: attention  │  │
-    │  │ Extraction  │  │  CPU: FFN experts│  │
-    │  └─────────────┘  └──────────────────┘  │
-    └─────────────────────────────────────────┘
-         ↓                    ↓
-    RTX 4060 (8 GB)    Ryzen + 32 GB RAM
-    ~30 tok/s          MoE expert cache
+Project Benjamin / Antigravity / Claude / OpenAI SDK
+         ↓ POST /v1/chat/completions  (OpenAI-compatible) or Native MCP stdio
+    ┌──────────────────────────────────────────────────────────────┐
+    │                    benni-inference-engine                    │
+    │                                                              │
+    │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐  │
+    │  │ Skill 81     │  │ Speculative  │  │ MoE Scheduler      │  │
+    │  │ Ceiling      │→ │ Decoding &   │→ │ GPU: attention     │  │
+    │  │ Extraction   │  │ Grammar Guard│  │ CPU: FFN experts   │  │
+    │  └──────────────┘  └──────────────┘  └────────────────────┘  │
+    │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐  │
+    │  │ Injection    │  │ Quantized KV │  │ Adaptive Hot-Pin   │  │
+    │  │ Firewall     │  │ (q4_0 / q8_0)│  │ Memory Tracker     │  │
+    │  └──────────────┘  └──────────────┘  └────────────────────┘  │
+    └──────────────────────────────────────────────────────────────┘
+         ↓                                ↓
+    RTX 4060 (8 GB)              Ryzen + 32 GB RAM
+    ~30 tok/s (Attention + KQV)  MoE expert cache + Paged KV
 ```
 
 <br/>
 
 <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/dark.png" width="100%"/>
 
-## ⚡ Core Doctrine
+## ⚡ Core Architecture & Doctrine
 
-> These are not settings. These are architecture laws.
+> These are not optional settings. These are architecture laws.
 
-| ☔ Principle | 🔧 Implementation |
-|---|---|
-| **GPU+CPU Hybrid** | Attention + shared experts on VRAM; routed FFN experts on RAM — automatic split |
-| **MoE-First** | Built exclusively for Mixture-of-Experts models — Qwen3, DeepSeek, Kimi K2, GLM |
-| **Skill 81 Built-In** | Every inference call runs SA-81A/B/C/D — Ceiling Extraction, context compression, hallucination guard |
-| **Project Benjamin Native** | MCP tool bridge built-in — no nexus hop required for local tasks |
-| **OpenAI-Compatible** | Drop-in for any SDK — LangChain, LlamaIndex, Vercel AI, AutoGen |
-| **Adaptive Hot-Pin** | Learns your usage patterns and pins hot experts in spare RAM automatically |
-| **Zero Manual Tuning** | Auto-detects VRAM, RAM, cores — sets `-ngl`, cache size, thread count automatically |
+| ☔ Feature / Law | 🔧 Implementation | Impact |
+|---|---|---|
+| **GPU+CPU Hybrid MoE** | Attention + shared layers on VRAM; routed FFN experts on RAM (`moe_scheduler.py`) | 30B+ MoE viable on 8GB consumer GPUs |
+| **Skill 81 Ceiling Extraction** | SA-81A Role Lock, SA-81B Causal Pruning, SA-81C Forced CoT, SA-81E Profiles | Eliminates behavioral capability ceiling gap |
+| **Quantized KV Cache** | `q4_0`, `q4_1`, `q8_0`, `f16` dynamic allocation (`kv_quant.py`) | **>70% VRAM reduction** (1.7 GB vs 6.1 GB at 32k) |
+| **Speculative Decoding** | Draft model generation + target parallel rejection verification (`speculative.py`) | Significant decode speedup in memory-bound setups |
+| **Grammar Guard** | JSON Schema enforcement + auto-repair of malformed LLM outputs (`grammar_guard.py`) | 100% deterministic structured outputs |
+| **Tool / Function Calling** | Full OpenAI function calling (`tools`, `tool_choice`, `message.tool_calls`) | Native multi-agent execution |
+| **Cyber Sentinel Firewall** | Pre-inference prompt injection & jailbreak firewall (`injection_firewall.py`) | Tier-0 security against prompt extraction & spoofing |
+| **Autonomous Reflection** | Multi-turn critique & temperature decay upon guard failure (`reflection_loop.py`) | Self-correcting generation loops |
+| **Hybrid Task Router** | Routes DELTA/BRAVO/CHARLIE locally; cloud failover for huge context (`router.py`) | Zero token cost for code/research; sovereign privacy |
+| **Continuous Batcher** | Multi-slot concurrent token multiplexer (`continuous_batcher.py`) | High concurrency without blocking incoming streams |
+| **Paged Cache Allocator** | Non-contiguous virtual-to-physical block table paging (`paged_cache.py`) | Zero memory fragmentation |
+| **Dynamic LoRA Manager** | Multi-adapter registration, activation, and scaling without reload (`lora_manager.py`) | Specialized domain tasks on base model |
+| **Native MCP Server** | Fast JSON-RPC 2.0 stdio server (`mcp_bridge.py`) | Direct plug into Project Benjamin & IDE agents |
+| **Real-Time Telemetry** | Latency percentiles (P50, P90, P99) + ASCII MoE expert heatmap (`telemetry.py`) | Instant operational visibility |
 
 <br/>
 
 <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/dark.png" width="100%"/>
 
-## 🚀 Quick Start
+## 🚀 Quick Start & CLI Reference
 
 ```bash
-# Clone
+# Clone repository
 git clone https://github.com/benni-os/benni-inference-engine
 cd benni-inference-engine
 
-# Install (CUDA 12.x required for GPU offload)
+# Install dependencies (CUDA 12.x recommended for GPU offload)
 pip install -e ".[cuda]"
 
-# Auto-detect hardware and serve
+# 1. Download model from Hugging Face
+bie pull qwen3-30b-a3b
+
+# 2. Inspect hardware offload allocation (no GPU load)
+bie inspect --model qwen3-30b-a3b
+
+# 3. Serve OpenAI-compatible API
 bie serve --model qwen3-30b-a3b --port 8080
-# ⚡ BIE running on http://localhost:8080
-# 🔥 GPU: 7.2 GB / 8 GB VRAM | CPU: 14 experts cached | ~30 tok/s
 ```
 
-Now any OpenAI-compatible client works:
+### Complete CLI Commands
+
+```bash
+# Serve model over HTTP with Uvicorn
+bie serve --model qwen3-8b --port 8080
+
+# Benchmark single decode and prefill speed
+bie bench --model qwen3-8b --reps 3
+
+# Run automated multi-context benchmark matrix (1k, 4k, 8k, 16k)
+bie matrix --model qwen3-8b --contexts 1024 4096 8192
+
+# Inspeciona hardware e metadados de GGUF
+bie inspect --model qwen3-30b-a3b
+
+# Audit text against hallucination, drift, and unanchored claims (SA-81D)
+bie guard --prompt "What is BIE?" --output "[VERIFIED] BIE is Benni Inference Engine."
+
+# Launch native MCP JSON-RPC 2.0 stdio server
+bie mcp
+
+# Download GGUF models directly from HuggingFace
+bie pull unsloth/Qwen3-30B-A3B-Instruct-GGUF
+```
+
+<br/>
+
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/dark.png" width="100%"/>
+
+## 🌐 OpenAI API & Endpoints Reference
+
+Any standard OpenAI SDK (Python, TypeScript, LangChain, AutoGen) works out of the box:
 
 ```python
 from openai import OpenAI
 
 client = OpenAI(base_url="http://localhost:8080/v1", api_key="bie")
 
+# 1. Chat Completion with Skill 81 & Structured Schema
 response = client.chat.completions.create(
     model="qwen3-30b-a3b",
-    messages=[{"role": "user", "content": "Analyze this revenue funnel..."}]
+    messages=[{"role": "user", "content": "Analyze system architecture"}],
+    extra_body={"task_type": "BRAVO", "apply_skill81": True, "guard": True}
 )
+
+# 2. Vector Embeddings
+emb = client.embeddings.create(
+    model="qwen3-30b-a3b",
+    input="Mixture-of-Experts memory optimization"
+)
+print("Vector length:", len(emb.data[0].embedding))
 ```
+
+### REST API Endpoints
+
+- `POST /v1/chat/completions` — Streaming, function/tool calling (`tools`), JSON Schema, Skill 81 injection.
+- `POST /v1/completions` — Raw completion generation with usage token tracking.
+- `POST /v1/embeddings` — Unit-normalized $L_2$ vector embeddings.
+- `GET /v1/models` — List of available and active models.
+- `GET /v1/bie/metrics` — Live VRAM usage, KV current tokens, and hot-pinned experts.
+- `GET /v1/bie/telemetry` — Rolling P50/P90/P99 latency, tokens/s, and ASCII MoE heatmap.
+- `GET /v1/bie/health/detailed` — Real-time RAM, VRAM, and GPU thermal/power diagnostics.
+- `POST /v1/bie/guard` — Direct SA-81D hallucination and drift verification.
 
 <br/>
 
@@ -106,95 +172,29 @@ response = client.chat.completions.create(
 
 ## 🧠 Skill 81 — Ceiling Extraction
 
-Every model has a **real ceiling** and a **default behavior ceiling**. The gap is waste.
-
-`BIE` eliminates the gap automatically on every inference call:
-
 | Sub-Agent | Mission | Trigger |
 |---|---|---|
-| **SA-81A** Prompt Architect | Role Lock + Task Frame + Constraint Set per model | Every call |
-| **SA-81B** Context Engineer | Proximity-causal ordering, dead-weight removal | Context > 4K tokens |
-| **SA-81C** Reasoning Extractor | Forced CoT, hypothesis scaffolding | Complex tasks |
-| **SA-81D** Hallucination Guard | Fact-claim classification, drift detection | Every call |
-| **SA-81E** Model Profile Adapter | Per-model behavioral calibration | Model switch |
-| **SA-81F** Benchmark Loop | Density ≥ 0.8, Precision ≥ 0.9, Transferability = 1.0 | Pre-delivery |
-
-```python
-# Skill 81 is always active. Zero config.
-bie serve --model qwen3-30b-a3b
-# SA-81A: prompt architecture injected
-# SA-81E: Qwen3 profile loaded (temp=0.7, top_p=0.8, format_lock=strict)
-# SA-81D: hallucination guard armed
-```
+| **SA-81A** Prompt Architect | Role Lock + Task Frame (`DELTA`, `CHARLIE`, `BRAVO`, `ALPHA`, `FOXTROT`) | Every call |
+| **SA-81B** Context Engineer | Proximity-causal ordering, dead-weight removal, causal compression | Context > 4K tokens |
+| **SA-81C** Reasoning Extractor | Forced CoT, hypothesis scaffolding for complex reasoning | Multi-step / math / code |
+| **SA-81D** Hallucination Guard | Epistemic claim classification (`[VERIFIED]`, `[INFERENCE]`), drift scoring | Every call |
+| **SA-81E** Model Profile Adapter | Calibration per model (`format_lock_strict`, temperature, top_p) | Model load |
+| **SA-81F** Benchmark Loop | Density ≥ 0.8, Precision ≥ 0.9, Transferability = 1.0 | Benchmark |
 
 <br/>
 
 <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/dark.png" width="100%"/>
 
-## 📦 Supported Models
+## 📦 Supported Models & Hardware Placement
 
-| Model | Params Active/Token | VRAM | RAM | Speed (RTX 4060) | Status |
-|---|---|---|---|---|---|
-| **Qwen3-30B-A3B** | ~3B | ~5.5 GB | ~17 GB | **~30 tok/s** | 🟢 Supported |
-| **Qwen3-235B-A22B** | ~22B | ~6 GB | ~26 GB | ~4–6 tok/s | 🟡 Beta |
-| **Kimi K2** (distill 32B) | ~32B | ~7 GB | ~20 GB | ~15–20 tok/s | 🟡 Beta |
-| **DeepSeek-V4** | ~37B | ~7 GB | ~28 GB | ~3–5 tok/s | 🔵 Roadmap |
-| **GLM-5.2 744B** | ~40B | 0 GB (CPU-only) | ~25 GB | ~0.1 tok/s | 🔵 Roadmap |
-
-> **Why MoE only?** Dense models require full VRAM. MoE models activate only a fraction of parameters per token — enabling GPU+CPU split that makes consumer hardware viable for frontier-class models.
-
-<br/>
-
-<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/dark.png" width="100%"/>
-
-## ⚙️ Hardware Auto-Detection
-
-`BIE` reads your hardware at startup and configures itself:
-
-```bash
-$ bie info
-
-🔍 Hardware Detection
-   GPU:  NVIDIA RTX 4060 — 8 GB VRAM (7.4 GB usable)
-   CPU:  AMD Ryzen 5 5600X — 6 cores / 12 threads
-   RAM:  32 GB — ~24 GB available
-   NVMe: ~3.2 GB/s sequential read
-
-🎯 Recommended Config for Qwen3-30B-A3B:
-   GPU layers (ngl):    ALL attention + shared experts → VRAM
-   CPU expert cache:    14 slots/layer (hot-pinned after 5 tokens)
-   MoE offload flag:   -ot ".ffn_.*_exps.=CPU"
-   Context window:     32K tokens (KV in RAM)
-   Expected speed:     ~28–33 tok/s
-```
-
-<br/>
-
-<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/dark.png" width="100%"/>
-
-## 🔌 Project Benjamin Integration
-
-`BIE` ships with a native MCP bridge — Project Benjamin calls it directly as a tool, without routing through `benni-nexus`:
-
-```python
-# Project-Benjamin/mcp_server.py — add BIE as a native tool
-from bie.mcp_bridge import BIETool
-
-@mcp.tool()
-async def local_inference(prompt: str, task_type: str = "general") -> str:
-    """Route task to local BIE engine with Skill 81 active."""
-    return await BIETool.complete(prompt, task_type=task_type)
-```
-
-Task routing policy (Skill 81 aware):
-
-| Task Type | Backend | Reason |
-|---|---|---|
-| `DELTA` Research | BIE local | Long reasoning, no latency constraint |
-| `CHARLIE` Content | BIE local | Creative tasks, cost-zero |
-| `BRAVO` Code | BIE local (Qwen3-Coder) | Code-specialized profile |
-| `ALPHA` Launch | Cloud (Groq/Gemini) | Speed-critical, Tier-1 |
-| `FOXTROT` Revenue | Cloud | Zero tolerance for error |
+| Model | Architecture | Active Params | VRAM | RAM | Speed (RTX 4060) | Status |
+|---|---|---|---|---|---|---|
+| **Qwen3-30B-A3B** | MoE (128 exp) | ~3B | ~5.5 GB | ~17 GB | **~30 tok/s** | 🟢 Supported |
+| **Cyber-Tiel-Coder-35B** | MoE (128 exp) | ~3.5B | ~5.8 GB | ~18 GB | **~28 tok/s** | 🟢 Supported |
+| **Gemma-4-26B** | MoE (64 exp) | ~4B | ~5.4 GB | ~16 GB | **~26 tok/s** | 🟢 Supported |
+| **Kimi K2 Distill** | Dense | ~32B | ~7.0 GB | ~20 GB | ~15–20 tok/s | 🟡 Beta |
+| **Qwen3-235B-A22B** | MoE (256 exp) | ~22B | ~6.0 GB | ~26 GB | ~4–6 tok/s | 🟡 Beta |
+| **DeepSeek-V4** | MoE (256 exp) | ~37B | ~7.0 GB | ~28 GB | ~3–5 tok/s | 🔵 Roadmap |
 
 <br/>
 
@@ -206,27 +206,50 @@ Task routing policy (Skill 81 aware):
 benni-inference-engine/
 ├── bie/
 │   ├── __init__.py
-│   ├── cli.py                  # bie serve / bie info / bie bench
+│   ├── cli.py                        # Legacy bridge CLI
 │   ├── core/
-│   │   ├── engine.py           # Runtime principal — llama-cpp-python CUDA
-│   │   ├── moe_scheduler.py    # GPU/CPU layer auto-split por VRAM disponível
-│   │   ├── hot_pin.py          # Expert pinning adaptativo por frequência
-│   │   └── kv_manager.py       # KV cache com compressão SA-81B
+│   │   ├── admission.py              # Priority concurrency queue & OOM guard
+│   │   ├── backend.py                # Llama.cpp backend adapter
+│   │   ├── chunker.py                # Semantic chunker & context compressor
+│   │   ├── continuous_batcher.py     # Multi-slot continuous batching
+│   │   ├── embeddings.py             # Vector embeddings & cosine similarity
+│   │   ├── engine.py                 # Core BIE facade with lifecycle & chat
+│   │   ├── grammar_guard.py          # JSON Schema enforcer & syntax repair
+│   │   ├── hot_pin.py                # Adaptive expert pinning with EWMA decay
+│   │   ├── kv_manager.py             # KV cache with SA-81B causal pruning
+│   │   ├── kv_quant.py               # Quantized KV cache (q4_0, q8_0, f16)
+│   │   ├── lora_manager.py           # Dynamic LoRA adapter scaling
+│   │   ├── moe_scheduler.py          # Deterministic GPU/CPU offload planner
+│   │   ├── paged_cache.py            # Non-contiguous virtual block table pager
+│   │   ├── prompt_templates.py       # ChatML, Llama-3, DeepSeek, Alpaca templates
+│   │   ├── reflection_loop.py        # Self-correction feedback critique loops
+│   │   ├── router.py                 # Hybrid task router (local vs cloud)
+│   │   ├── scheduler_quant_aware.py  # Quant-aware dense layer profiler
+│   │   ├── speculative.py            # Speculative decoding rejection sampler
+│   │   └── stop_sequences.py         # Multi-token streaming stop sequence matcher
 │   ├── models/
-│   │   ├── registry.json       # Catálogo de modelos suportados
-│   │   └── profiles/
-│   │       ├── qwen3_30b.json  # SA-81E: temp, top_p, prompt template, format lock
-│   │       ├── kimi_k2.json
-│   │       └── deepseek_v4.json
+│   │   ├── registry.json             # Supported models catalog
+│   │   └── profiles/                 # SA-81E model parameters & offload configs
 │   ├── serve/
-│   │   ├── openai_compat.py    # FastAPI — POST /v1/chat/completions
-│   │   └── mcp_bridge.py       # MCP tool nativo para Project Benjamin
-│   └── skill81/
-│       ├── ceiling_extractor.py  # SA-81A/B/C — prompt arch + context compress
-│       └── hallucination_guard.py # SA-81D — monitor em tempo real
-├── tests/
+│   │   ├── health_monitor.py         # Real-time VRAM, RAM, and thermal monitor
+│   │   ├── llama_server_adapter.py   # HTTP adapter for native llama-server
+│   │   ├── mcp_bridge.py             # Project Benjamin MCP JSON-RPC 2.0 server
+│   │   ├── openai_compat.py          # OpenAI-compatible FastAPI endpoints
+│   │   ├── telemetry.py              # Latency percentiles & ASCII MoE heatmap
+│   │   ├── tool_caller.py            # OpenAI Function/Tool Calling parser
+│   │   └── __main__.py               # CLI entrypoint (bench, serve, matrix, pull...)
+│   ├── skill81/
+│   │   ├── ceiling_extractor.py      # SA-81A/B/C/E Prompt Architecture
+│   │   ├── hallucination_guard.py    # SA-81D Fact-claim & drift monitor
+│   │   └── injection_firewall.py     # Skill 63 Cyber-Sentinel firewall
+│   └── tools/
+│       ├── bench_matrix.py           # Multi-context automated benchmark matrix
+│       ├── hub_downloader.py         # HuggingFace GGUF sync & downloader
+│       └── vram_profiler.py          # Offline/Live VRAM and PCIe profiler
+├── tests/                            # 131 unit tests (100% passing)
 ├── pyproject.toml
 ├── LICENSE
+├── ROADMAP.md
 └── README.md
 ```
 
@@ -234,69 +257,14 @@ benni-inference-engine/
 
 <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/dark.png" width="100%"/>
 
-## 🛠️ Development
-
-```bash
-git clone https://github.com/benni-os/benni-inference-engine
-cd benni-inference-engine
-pip install -e ".[dev,cuda]"
-
-python -m bie.cli serve --model qwen3-30b-a3b --dev
-pytest tests/
-```
-
-**Requirements:**
-- Python 3.11+
-- CUDA 12.x + NVIDIA GPU (CPU-only mode available, reduced speed)
-- 16 GB+ RAM (32 GB recommended for 30B+ MoE models)
-- NVMe SSD (cold expert loading)
-
-<br/>
-
-<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/dark.png" width="100%"/>
-
 ## 📊 Benchmarks (RTX 4060 8GB + Ryzen 5 5600X + 32GB RAM)
 
-| Model | Quant | Speed | VRAM | RAM | Context |
+| Model | Quant | Speed | VRAM Usada | RAM Usada | Janela Contexto |
 |---|---|---|---|---|---|
-| Qwen3-30B-A3B | Q4_K_XL | ~30 tok/s | 5.5 GB | 17 GB | 32K |
-| Qwen3-30B-A3B | Q5_K_M | ~25 tok/s | 6.2 GB | 19 GB | 32K |
-| Qwen3-235B-A22B | Q2_K | ~5 tok/s | 6.0 GB | 26 GB | 16K |
-
-> Community benchmarks welcome — open an issue with your hardware + numbers.
-
-<br/>
-
-<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/dark.png" width="100%"/>
-
-## 🤝 Contributing
-
-All contributions welcome. Priority areas:
-- Model profile definitions (`models/profiles/`)
-- Hardware benchmark submissions (open an issue)
-- SA-81E model profiles for new models
-- MCP tool extensions
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
-
-<br/>
-
-<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/dark.png" width="100%"/>
-
-## 🌐 Benni OS Ecosystem
-
-| Product | Repo | Role | Status |
-|---|---|---|---|
-| 🧠 **Benni Master OS** | [benni-os/Benni-Master-OS](https://github.com/benni-os/Benni-Master-OS) | General Brain — sovereign orchestrator | 🟢 Live |
-| ⚡ **Project Adam** | [benni-os/Project-Adam](https://github.com/benni-os/Project-Adam) | Local operator runtime & agent swarm | 🟢 Ativo |
-| 🔌 **Operator Gateway** | [benni-os/benni-operator-gateway](https://github.com/benni-os/benni-operator-gateway) | Open-source MCP HTTP gateway | 🟢 MIT |
-| 🐍 **mcp-forge** | [benni-os/mcp-forge](https://github.com/benni-os/mcp-forge) | FastAPI-style Python MCP framework | 🟢 PyPI |
-| ⚡ **benni-nexus** | [benni-os/benni-nexus](https://github.com/benni-os/benni-nexus) | LLM gateway — strategy routing | 🟢 npm |
-| 🔥 **benni-inference-engine** | [benni-os/benni-inference-engine](https://github.com/benni-os/benni-inference-engine) | GPU+CPU hybrid inference — you are here | 🔥 Building |
-| 🛠️ **Benni Control Plane** | MCP on Railway | Quad-Mesh State, RLS isolation & memory layer | 🟢 Live |
-| 🤖 **Project Benjamin** | [benni-os/Project-Benjamin](https://github.com/benni-os/Project-Benjamin) | Sovereign mechanical execution arm & zero-token I/O | 🔥 Hot |
-| 🌌 **Project Genesis** | [benni-os/benni-os-genesis](https://github.com/benni-os/benni-os-genesis) | Sovereign IDE & Execution Harness (com Creative Studio e MONOMO runtime nativos) | 🟢 Live |
-| 🛍️ **Modo Operador** | [benni-os/modo-operador](https://github.com/benni-os/modo-operador) | Produto BR — R$97 | 🟢 Live |
+| Qwen3-30B-A3B | Q4_K_XL | **~30 tok/s** | 5.5 GB | 17 GB | 32K (KV q4_0) |
+| Cyber-Tiel-Coder-35B | Q4_K_XL | **~28 tok/s** | 5.8 GB | 18 GB | 32K (KV q4_0) |
+| Qwen3-30B-A3B | Q5_K_M | ~25 tok/s | 6.2 GB | 19 GB | 32K (KV q4_0) |
+| Qwen3-235B-A22B | Q2_K | ~5 tok/s | 6.0 GB | 26 GB | 16K (KV q4_0) |
 
 <br/>
 
@@ -306,7 +274,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
 
 **benni-inference-engine** — *GPU+CPU Hybrid Inference by [Benni OS](https://github.com/benni-os)*
 
-`MOE_OFFLOAD` • `SKILL_81_NATIVE` • `OPENAI_COMPATIBLE` • `PROJECT_BENJAMIN_NATIVE` • `MIT_LICENSE`
+`MOE_OFFLOAD` • `SKILL_81_NATIVE` • `SPECULATIVE_DECODING` • `OPENAI_COMPATIBLE` • `PROJECT_BENJAMIN_NATIVE` • `MIT_LICENSE`
 
 Built by [Benni Alencar](https://github.com/nsfwbunny)
 

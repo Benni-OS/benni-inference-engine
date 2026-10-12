@@ -95,9 +95,20 @@ def _sse(chunks: Iterator[str], request_id: str, model: str) -> Iterator[str]:
     yield "data: [DONE]\n\n"
 
 
+from bie.serve.health_monitor import HealthMonitor
+
+_health_monitor = HealthMonitor()
+
+
 @app.get("/health")
 async def health() -> dict[str, Any]:
     return {"status": "ok", "engine": "benni-inference-engine", "version": VERSION}
+
+
+@app.get("/v1/bie/health/detailed")
+async def bie_health_detailed() -> dict[str, Any]:
+    """Expose detailed resource health, VRAM, and thermal diagnostics."""
+    return _health_monitor.check_health()
 
 
 @app.get("/ready")
