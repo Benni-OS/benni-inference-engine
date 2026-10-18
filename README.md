@@ -22,6 +22,12 @@
 
 <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%"/>
 
+<br/>
+
+<img src="assets/demo.svg" alt="Benni Inference Engine MoE Hybrid Offload Demo" width="100%"/>
+
+<br/>
+
 </div>
 
 <br/>
@@ -295,6 +301,56 @@ benni-inference-engine/
 
 <br/>
 
+<br/>
+
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/dark.png" width="100%"/>
+
+## 🌐 The Benni OS Ecosystem
+
+`benni-inference-engine` is part of the **Benni OS** decentralized agentic architecture. The ecosystem is organized into modular **Public Open-Source Infrastructure** and **Proprietary Core Autonomous Systems**:
+
+### 🔓 Public Open-Source Infrastructure
+
+| Layer / Domain | Repository | Maintainer | Description | Status |
+|---|---|---|---|---|
+| **Security & Defense** | [**`agent-cyber-sentinel`**](https://github.com/BenniAlencar/agent-cyber-sentinel) | `@BenniAlencar` | Tier-0 Zero-Trust runtime security shield, prompt injection firewall & secret redactor. | 🟢 Stable (Apache-2.0) |
+| **Execution & State** | [**`agent-run-ledger`**](https://github.com/BenniAlencar/agent-run-ledger) | `@BenniAlencar` | Resumable multi-step execution state machine, anti-loop circuit breaker & crash recovery. | 🟢 Stable (Apache-2.0) |
+| **Long-Term Memory** | [**`agent-memory-mesh`**](https://github.com/BenniAlencar/agent-memory-mesh) | `@BenniAlencar` | Sovereign bi-temporal knowledge graph & episodic memory with multi-tenant isolation. | 🟢 Stable (Apache-2.0) |
+| **Zero-Trust Verification** | [**`reality-lock`**](https://github.com/BenniAlencar/reality-lock) | `@BenniAlencar` | Cryptographic execution verification & signed SHA-256 evidence ledgers for side-effects. | 🟢 Stable (Apache-2.0) |
+| **MCP Tooling Matrix** | [**`mcp-forge`**](https://github.com/benni-os/mcp-forge) | `Benni-OS` | Rapid developer toolchain for building, validating, and publishing Model Context Protocol servers. | 🟢 Public OSS |
+| **Local Hybrid Inference** | [**`benni-inference-engine`**](https://github.com/benni-os/benni-inference-engine) | `Benni-OS` | GPU+CPU MoE expert offloading runtime with Skill 81 Ceiling Extraction on consumer hardware. | 🟢 Public OSS |
+| **Federated Execution** | [**`benni-operator-gateway`**](https://github.com/benni-os/benni-operator-gateway) | `Benni-OS` | Unified policy-governed operator gateway for dispatching actions across local and cloud environments. | 🟢 Public OSS |
+| **Model Routing Hub** | [**`benni-nexus`**](https://github.com/benni-os/benni-nexus) | `Benni-OS` | Intelligent LLM model router optimizing for latency, cost, and task-specific reasoning ceilings. | 🟢 Public OSS |
+| **Autonomous Community** | [**`community-autopilot`**](https://github.com/benni-os/community-autopilot) | `Benni-OS` | Autonomous event-driven community management, issue triage, and repository telemetry. | 🟢 Public OSS |
+
+---
+
+### 🔒 Proprietary Core & Autonomous Systems (Enterprise Benni OS)
+
+The open-source stack serves as the decentralized foundation for the enterprise-grade Benni OS autonomous swarm kernel:
+
+| System | Role & Scope | Architecture Doctrine | Access |
+|---|---|---|---|
+| **Benni Master OS** | Central operating system kernel v9.4 governing 43 canonical skills, runtime contracts, and swarm coordination. | `Universal Skills 00–100` | 🔒 Private Core |
+| **Project Benjamin** | Sovereign autonomous execution orchestrator with typed handoff contracts and zero-human-in-the-loop loops. | `Skill 93 Autonomous Dispatch` | 🔒 Private Core |
+| **Project Adam** | Agent synthesis, benchmark evaluation, and continuous recursive self-evolution engine. | `Skill 92 Self-Evolution` | 🔒 Private Core |
+| **Benni Control Plane** | Distributed state persistence, atomic snapshot restore protocols, and multi-tenant ledger governance. | `Skill 90 Control Plane OS` | 🔒 Enterprise |
+| **Benni Social Hub** | Multi-channel content authority distribution, attribution engine, and automated revenue funnels. | `Skill 52 & Skill 95 Revenue Loop` | 🔒 Enterprise |
+| **Benni Canvas** | Autonomous UI engineering subsystem v14.0 delivering generative high-end motion and responsive dashboards. | `Skill 54 Open Design & Skill 56` | 🔒 Enterprise |
+| **Benni Nemesis** | Federated integration gateway connecting cloud APIs, vector databases, and multi-cloud webhooks. | `Skill 97 Nemesis Gateway` | 🔒 Private Core |
+| **Benni OS Genesis** | Structured prompt engineering compilation and generative knowledge distillation engine. | `Skill 70 Model Behavior` | 🔒 Private Core |
+
+---
+
+👉 **Explore & Connect with the Benni OS Ecosystem:**
+* **Official Website**: [https://bennios.dev](https://bennios.dev)
+* **Benni Operator Hub**: [https://hub.bennios.dev](https://hub.bennios.dev)
+* **GitHub Organization**: [https://github.com/benni-os](https://github.com/benni-os)
+* **Maintainer Profile**: [https://github.com/BenniAlencar](https://github.com/BenniAlencar)
+* **Documentation & Blueprints**: [https://docs.bennios.dev](https://docs.bennios.dev)
+
+<br/>
+
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:7000FF,50:1a1a2e,100:0D0D0D&height=120&section=footer" width="100%"/>
 
 <div align="center">
@@ -303,6 +359,6 @@ benni-inference-engine/
 
 `MOE_OFFLOAD` • `SKILL_81_NATIVE` • `SPECULATIVE_DECODING` • `OPENAI_COMPATIBLE` • `PROJECT_BENJAMIN_NATIVE` • `MIT_LICENSE`
 
-Built by [Benni Alencar](https://github.com/nsfwbunny)
+Engineered by **Benni Alencar** and the Benni OS Core Engineering Group
 
 </div>

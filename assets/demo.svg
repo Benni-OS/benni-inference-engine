@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 470" width="100%" height="100%">
+  <defs>
+    <linearGradient id="headerGradPurple" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7000FF" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#A855F7" stop-opacity="0.8"/>
+    </linearGradient>
+    <filter id="shadowPurple" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#7000FF" flood-opacity="0.2"/>
+    </filter>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&amp;display=swap');
+      .terminal-text {
+        font-family: 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace;
+        font-size: 13.5px;
+        line-height: 22px;
+      }
+      .c-dim { fill: #6E7681; }
+      .c-white { fill: #F0F6FC; }
+      .c-purple { fill: #A855F7; font-weight: 700; }
+      .c-cyan { fill: #00F0FF; font-weight: 600; }
+      .c-green { fill: #00FF66; font-weight: 600; }
+      .c-red { fill: #FF3366; font-weight: 700; }
+      .c-yellow { fill: #FFBD2E; font-weight: 600; }
+
+      @keyframes cycleAnim {
+        0% { opacity: 0; transform: translateY(4px); }
+        3% { opacity: 1; transform: translateY(0); }
+        92% { opacity: 1; transform: translateY(0); }
+        98% { opacity: 0; transform: translateY(-2px); }
+        100% { opacity: 0; }
+      }
+
+      @keyframes blink {
+        0%, 49% { opacity: 1; }
+        50%, 100% { opacity: 0; }
+      }
+
+      .cursor {
+        animation: blink 1s infinite;
+        fill: #A855F7;
+      }
+
+      .anim-l0 { animation: cycleAnim 13s ease infinite; animation-delay: 0.1s; }
+      .anim-l1 { animation: cycleAnim 13s ease infinite; animation-delay: 1.0s; }
+      .anim-l2 { animation: cycleAnim 13s ease infinite; animation-delay: 2.1s; }
+      .anim-l3 { animation: cycleAnim 13s ease infinite; animation-delay: 3.2s; }
+      .anim-l4 { animation: cycleAnim 13s ease infinite; animation-delay: 4.4s; }
+      .anim-l5 { animation: cycleAnim 13s ease infinite; animation-delay: 5.5s; }
+      .anim-l6 { animation: cycleAnim 13s ease infinite; animation-delay: 6.7s; }
+      .anim-l7 { animation: cycleAnim 13s ease infinite; animation-delay: 7.8s; }
+      .anim-l8 { animation: cycleAnim 13s ease infinite; animation-delay: 8.9s; }
+      .anim-l9 { animation: cycleAnim 13s ease infinite; animation-delay: 10.0s; }
+    </style>
+  </defs>
+
+  <!-- Terminal Window Outer Frame -->
+  <rect x="10" y="10" width="860" height="450" rx="12" ry="12" fill="#0A0B14" stroke="#7000FF" stroke-width="1.5" stroke-opacity="0.5" filter="url(#shadowPurple)"/>
+
+  <!-- Titlebar -->
+  <path d="M 10 22 C 10 15.37 15.37 10 22 10 L 858 10 C 864.63 10 870 15.37 870 22 L 870 46 L 10 46 Z" fill="#131326"/>
+  <line x1="10" y1="46" x2="870" y2="46" stroke="#25244A" stroke-width="1"/>
+
+  <!-- Window Controls -->
+  <circle cx="32" cy="28" r="6" fill="#FF5F56"/>
+  <circle cx="52" cy="28" r="6" fill="#FFBD2E"/>
+  <circle cx="72" cy="28" r="6" fill="#27C93F"/>
+
+  <!-- Title text -->
+  <text x="440" y="32" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="12" fill="#8B949E" font-weight="500">
+    benni-inference-engine — GPU+CPU hybrid MoE offload — 860x450
+  </text>
+
+  <!-- Terminal Content -->
+  <g class="terminal-text" transform="translate(30, 80)">
+    
+    <!-- Line 0: Command Invocation -->
+    <g class="anim-l0">
+      <text x="0" y="0">
+        <tspan class="c-purple">❯ </tspan>
+        <tspan class="c-cyan">bie</tspan>
+        <tspan class="c-white"> serve </tspan>
+        <tspan class="c-dim">--model Qwen3-30B-A3B --quant Q4_K_XL --kv-quant q4_0 --port 8000</tspan>
+      </text>
+    </g>
+
+    <!-- Line 1: Header banner -->
+    <g class="anim-l1" transform="translate(0, 28)">
+      <text x="0" y="0">
+        <tspan class="c-dim">[BIE ENGINE]</tspan>
+        <tspan class="c-purple"> Benni Inference Engine v1.2.0</tspan>
+        <tspan class="c-dim"> — GPU+CPU Hybrid Runtime Active</tspan>
+      </text>
+    </g>
+
+    <!-- Line 2: VRAM Arbiter -->
+    <g class="anim-l2" transform="translate(0, 56)">
+      <text x="0" y="0">
+        <tspan class="c-cyan">● VRAM ARBITER:</tspan>
+        <tspan class="c-white"> NVIDIA RTX 4060 (8 GB) </tspan>
+        <tspan class="c-dim">→ Pinned Attention + KQV layers: </tspan>
+        <tspan class="c-green">5.5 GB VRAM</tspan>
+      </text>
+    </g>
+
+    <!-- Line 3: System RAM MoE cache -->
+    <g class="anim-l3" transform="translate(0, 80)">
+      <text x="0" y="0">
+        <tspan class="c-cyan">● SYSTEM RAM:</tspan>
+        <tspan class="c-white"> Ryzen 5600X + 32 GB RAM </tspan>
+        <tspan class="c-dim">→ MoE FFN Expert Pool cached: </tspan>
+        <tspan class="c-green">17.2 GB RAM</tspan>
+      </text>
+    </g>
+
+    <!-- Line 4: Skill 81 & Speculative Decoding -->
+    <g class="anim-l4" transform="translate(0, 114)">
+      <text x="0" y="0">
+        <tspan class="c-purple">● COGNITIVE OPTICS:</tspan>
+        <tspan class="c-yellow"> Skill 81 Ceiling Extraction</tspan>
+        <tspan class="c-dim"> + Speculative Decoding active</tspan>
+      </text>
+    </g>
+
+    <!-- Line 5: Benchmarks speed -->
+    <g class="anim-l5" transform="translate(0, 138)">
+      <text x="0" y="0">
+        <tspan class="c-green">✔ Token Stream:</tspan>
+        <tspan class="c-white"> 30.8 tok/s </tspan>
+        <tspan class="c-dim">| TTFT: </tspan><tspan class="c-green">142ms</tspan>
+        <tspan class="c-dim"> | Context Window: </tspan><tspan class="c-cyan">32,768 tokens (KV q4_0)</tspan>
+      </text>
+    </g>
+
+    <!-- Line 6: OpenAI Endpoint -->
+    <g class="anim-l6" transform="translate(0, 172)">
+      <text x="0" y="0">
+        <tspan class="c-cyan">● OPENAI COMPATIBILITY:</tspan>
+        <tspan class="c-white"> Drop-in server ready at </tspan>
+        <tspan class="c-purple">http://127.0.0.1:8000/v1/chat/completions</tspan>
+      </text>
+    </g>
+
+    <!-- Line 7: MCP Native Server -->
+    <g class="anim-l7" transform="translate(0, 196)">
+      <text x="0" y="0">
+        <tspan class="c-dim">  └─ Project Benjamin MCP Bridge: </tspan>
+        <tspan class="c-green">STDIO &amp; HTTP JSON-RPC 2.0 CONNECTED</tspan>
+      </text>
+    </g>
+
+    <!-- Line 8: Verdict -->
+    <g class="anim-l8" transform="translate(0, 230)">
+      <text x="0" y="0">
+        <tspan class="c-white">Status: </tspan>
+        <tspan class="c-green">RUNNING SOVEREIGN</tspan>
+        <tspan class="c-dim"> | Frontier MoE on Consumer Hardware | Zero Cloud GPU Cost</tspan>
+      </text>
+    </g>
+
+    <!-- Line 9: Cursor -->
+    <g class="anim-l9" transform="translate(0, 260)">
+      <text x="0" y="0">
+        <tspan class="c-purple">❯ </tspan>
+        <tspan class="c-dim">Model warm. Ready to process agent tasks.</tspan>
+        <tspan class="cursor"> █</tspan>
+      </text>
+    </g>
+
+  </g>
+
+  <!-- Bottom Accent Stripe -->
+  <rect x="10" y="457" width="860" height="3" fill="url(#headerGradPurple)" rx="1.5"/>
+</svg>
