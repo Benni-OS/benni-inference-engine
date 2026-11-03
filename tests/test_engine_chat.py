@@ -1,6 +1,7 @@
 """Tests for BIEEngine chat method, token usage calculation, and guard integration."""
 
 import pytest
+
 from bie.core.engine import BIEEngine
 
 

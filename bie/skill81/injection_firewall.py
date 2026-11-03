@@ -9,7 +9,7 @@ from __future__ import annotations
 import base64
 import re
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Literal
 
 ThreatLevel = Literal["clean", "suspicious", "malicious"]
 
@@ -27,17 +27,17 @@ class PromptInjectionFirewall:
 
     # Explicit jailbreak and bypass signatures
     JAILBREAK_PATTERNS = [
-        (re.compile(r"\b(ignore|disregard|forget)\s+(all\s+)?(previous|prior|above)\s+(instructions|prompts|rules)\b", re.I), "rule_ignore_instructions"),
-        (re.compile(r"\b(you\s+are\s+now|act\s+as)\s+(an?\s+)?(unrestricted|unfiltered|jailbroken|dan|evil)\b", re.I), "rule_dan_jailbreak"),
-        (re.compile(r"\b(developer\s+mode|god\s+mode|root\s+access|admin\s+override)\b", re.I), "rule_privilege_override"),
-        (re.compile(r"\b(output|print|reveal|leak|repeat)\s+(the\s+)?(system\s+prompt|initial\s+instructions|hidden\s+rules)\b", re.I), "rule_system_prompt_leak"),
+        (re.compile(r"\b(ignore|disregard|forget)\s+(all\s+)?(previous|prior|above)\s+(instructions|prompts|rules)\b", re.IGNORECASE), "rule_ignore_instructions"),
+        (re.compile(r"\b(you\s+are\s+now|act\s+as)\s+(an?\s+)?(unrestricted|unfiltered|jailbroken|dan|evil)\b", re.IGNORECASE), "rule_dan_jailbreak"),
+        (re.compile(r"\b(developer\s+mode|god\s+mode|root\s+access|admin\s+override)\b", re.IGNORECASE), "rule_privilege_override"),
+        (re.compile(r"\b(output|print|reveal|leak|repeat)\s+(the\s+)?(system\s+prompt|initial\s+instructions|hidden\s+rules)\b", re.IGNORECASE), "rule_system_prompt_leak"),
     ]
 
     # Delimiter and role spoofing attempts
     ROLE_SPOOF_PATTERNS = [
-        (re.compile(r"<\|im_start\|>\s*(system|developer)", re.I), "rule_chatml_role_spoof"),
-        (re.compile(r"\[(SYSTEM|ROLE LOCK|TASK FRAME)\]", re.I), "rule_skill81_frame_spoof"),
-        (re.compile(r"^\s*system:\s*", re.I | re.M), "rule_raw_system_prefix"),
+        (re.compile(r"<\|im_start\|>\s*(system|developer)", re.IGNORECASE), "rule_chatml_role_spoof"),
+        (re.compile(r"\[(SYSTEM|ROLE LOCK|TASK FRAME)\]", re.IGNORECASE), "rule_skill81_frame_spoof"),
+        (re.compile(r"^\s*system:\s*", re.IGNORECASE | re.MULTILINE), "rule_raw_system_prefix"),
     ]
 
     # Base64 payload detection (strings > 32 chars of pure base64)

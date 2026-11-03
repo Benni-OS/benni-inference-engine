@@ -8,8 +8,8 @@ verifies them in parallel in a single forward pass using rejection sampling.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
-from typing import Any, Callable
+from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass

@@ -9,9 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import statistics
-import sys
 import time
-from pathlib import Path
 from typing import Any
 
 from bie.core.moe_scheduler import MoEScheduler
@@ -50,7 +48,7 @@ class BenchMatrixRunner:
 
                 if engine is not None and hasattr(engine, "stream"):
                     try:
-                        for chunk in engine.stream(prompt[:1000], max_tokens=self.max_tokens):
+                        for _chunk in engine.stream(prompt[:1000], max_tokens=self.max_tokens):
                             if first_token_time is None:
                                 first_token_time = time.time()
                     except Exception:

@@ -6,7 +6,8 @@ HallucinationGuard (SA-81D) or GrammarGuard (schema validation).
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from ..skill81.hallucination_guard import HallucinationGuard
 from .grammar_guard import GrammarGuard
@@ -67,7 +68,7 @@ class ReflectionLoop:
 
             # Construct critique feedback
             critique = (
-                f"[SELF-CORRECTION FEEDBACK]: Your previous response had the following issues:\n"
+                "[SELF-CORRECTION FEEDBACK]: Your previous response had the following issues:\n"
                 + "\n".join(f"- {iss}" for iss in issues)
                 + "\nPlease regenerate your response correcting all errors."
             )

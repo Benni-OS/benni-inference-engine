@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Literal
 
 ArbiterMode = Literal["primary_exclusive", "vision_exclusive", "cooperative_split"]
 

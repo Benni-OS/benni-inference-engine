@@ -3,20 +3,18 @@ Semantic Chunker, Continuous Batcher, Paged Cache Allocator, Prompt Injection Fi
 Reflection Loop, Hub Downloader, Stop Sequences, Prompt Templates, and Health Monitor.
 """
 
-import pytest
-from pathlib import Path
 from fastapi.testclient import TestClient
 
 from bie.core.chunker import SemanticChunker
-from bie.core.continuous_batcher import ContinuousBatcher, SlotState
+from bie.core.continuous_batcher import ContinuousBatcher
 from bie.core.paged_cache import PagedCacheAllocator
-from bie.skill81.injection_firewall import PromptInjectionFirewall
-from bie.core.reflection_loop import ReflectionLoop
-from bie.tools.hub_downloader import ModelHubDownloader
-from bie.core.stop_sequences import StopSequenceMatcher
 from bie.core.prompt_templates import PromptTemplateEngine
+from bie.core.reflection_loop import ReflectionLoop
+from bie.core.stop_sequences import StopSequenceMatcher
 from bie.serve.health_monitor import HealthMonitor
 from bie.serve.openai_compat import app
+from bie.skill81.injection_firewall import PromptInjectionFirewall
+from bie.tools.hub_downloader import ModelHubDownloader
 
 
 # --- 1. Semantic Chunker ---

@@ -1,12 +1,10 @@
 """Comprehensive tests for Skill 81 full implementations: CeilingExtractor, HallucinationGuard, KVManager, HotPinManager."""
 
-import pytest
-from pathlib import Path
 
+from bie.core.hot_pin import HotPinManager
+from bie.core.kv_manager import KVManager
 from bie.skill81.ceiling_extractor import CeilingExtractor
 from bie.skill81.hallucination_guard import HallucinationGuard
-from bie.core.kv_manager import KVManager
-from bie.core.hot_pin import HotPinManager
 
 
 def test_ceiling_extractor_task_frames():

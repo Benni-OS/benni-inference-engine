@@ -6,7 +6,6 @@ status to prevent thermal throttling and hardware crashes.
 
 from __future__ import annotations
 
-import os
 import subprocess
 import time
 from typing import Any

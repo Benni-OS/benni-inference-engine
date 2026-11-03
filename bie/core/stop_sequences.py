@@ -6,7 +6,7 @@ Buffers stream chunks to prevent emitting partial stop sequences across token bo
 
 from __future__ import annotations
 
-from typing import Iterator
+from collections.abc import Iterator
 
 
 class StopSequenceMatcher:

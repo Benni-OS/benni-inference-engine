@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import heapq
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Iterator, Literal
+from typing import Any, Literal
 
 PriorityLevel = Literal["critical", "high", "normal", "low"]
 
@@ -62,8 +63,7 @@ class AdmissionController:
         """Admit request if slot available, or reject if queue is saturated."""
         if self.can_admit_immediately():
             self.active_count += 1
-            if self.active_count > self.peak_concurrent:
-                self.peak_concurrent = self.active_count
+            self.peak_concurrent = max(self.peak_concurrent, self.active_count)
             return True
 
         if len(self.queue) >= self.max_queue_depth:

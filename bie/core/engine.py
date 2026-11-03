@@ -9,6 +9,10 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
+from ..serve.telemetry import TelemetryEngine
+from ..serve.tool_caller import ToolCallingEngine
+from ..skill81.ceiling_extractor import CeilingExtractor
+from ..skill81.hallucination_guard import HallucinationGuard
 from .admission import AdmissionController
 from .backend import BackendConfig, LlamaCppBackend
 from .dual_model import DualModelOrchestrator
@@ -20,10 +24,6 @@ from .moe_scheduler import MoEScheduler
 from .router import TaskRouter
 from .vision import VisionEngine
 from .vram_arbiter import VRAMArbiter
-from ..serve.telemetry import TelemetryEngine
-from ..serve.tool_caller import ToolCallingEngine
-from ..skill81.ceiling_extractor import CeilingExtractor
-from ..skill81.hallucination_guard import HallucinationGuard
 
 
 class BIEEngine:

@@ -38,7 +38,7 @@ class GrammarGuard:
         open_curly = text.count("{") - text.count("}")
         open_square = text.count("[") - text.count("]")
 
-        if text.endswith(",") or text.endswith(":"):
+        if text.endswith((",", ":")):
             text = text[:-1].strip()
 
         # Close missing quotes if odd number of unescaped quotes
@@ -73,7 +73,6 @@ class GrammarGuard:
         cleaned = cls.strip_markdown_fences(text)
         repaired = False
         parsed_data = None
-        error_msg = None
 
         try:
             parsed_data = json.loads(cleaned)

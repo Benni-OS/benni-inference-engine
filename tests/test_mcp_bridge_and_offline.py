@@ -1,8 +1,8 @@
 """Tests for MCP Bridge, BIETool in-memory fallback, and offline VRAM profiler."""
 
 import asyncio
-from pathlib import Path
-from bie.serve.mcp_bridge import BIETool, MCP_TOOLS
+
+from bie.serve.mcp_bridge import MCP_TOOLS, BIETool
 from bie.tools.vram_profiler import profile_offline
 
 

@@ -4,27 +4,29 @@ Embeddings, Admission Controller, LoRA Manager, Telemetry, and Bench Matrix.
 """
 
 import json
+
 import pytest
-from pathlib import Path
 from fastapi.testclient import TestClient
 
-from bie.core.speculative import SpeculativeEngine
-from bie.core.grammar_guard import GrammarGuard
-from bie.core.router import TaskRouter
-from bie.core.kv_quant import KVQuantManager
-from bie.serve.tool_caller import ToolCallingEngine
-from bie.core.embeddings import EmbeddingsEngine
 from bie.core.admission import AdmissionController
+from bie.core.embeddings import EmbeddingsEngine
+from bie.core.grammar_guard import GrammarGuard
+from bie.core.kv_quant import KVQuantManager
 from bie.core.lora_manager import LoRAManager
-from bie.serve.telemetry import TelemetryEngine
-from bie.tools.bench_matrix import BenchMatrixRunner
+from bie.core.router import TaskRouter
+from bie.core.speculative import SpeculativeEngine
 from bie.serve.openai_compat import app, configure_engine
+from bie.serve.telemetry import TelemetryEngine
+from bie.serve.tool_caller import ToolCallingEngine
+from bie.tools.bench_matrix import BenchMatrixRunner
 
 
 # --- 1. Speculative Decoding ---
 def test_speculative_decoding():
-    target = lambda prompt, **kw: {"choices": [{"text": "verified answer"}]}
-    draft = lambda prompt, **kw: {"choices": [{"text": "candidate token"}]}
+    def target(prompt, **kw):
+        return {"choices": [{"text": "verified answer"}]}
+    def draft(prompt, **kw):
+        return {"choices": [{"text": "candidate token"}]}
 
     engine = SpeculativeEngine(target_model=target, draft_model=draft, gamma=2)
     res = engine.generate("test prompt", max_tokens=10)

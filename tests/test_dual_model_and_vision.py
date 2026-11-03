@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-import base64
 from pathlib import Path
 from typing import Any
-
-import pytest
 
 from bie.core.dual_model import DualModelOrchestrator
 from bie.core.engine import BIEEngine
 from bie.core.router import TaskRouter
-from bie.core.vision import ImagePayload, VisionEngine
-from bie.core.vram_arbiter import AllocationPlan, VRAMArbiter
+from bie.core.vision import VisionEngine
+from bie.core.vram_arbiter import VRAMArbiter
 from bie.serve.mcp_bridge import BIETool
 
 

@@ -7,11 +7,10 @@ and registers them into the local BIE model registry.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
 
 
 class ModelHubDownloader:

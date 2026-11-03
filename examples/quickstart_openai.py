@@ -10,6 +10,7 @@ Prerequisite:
 
 from openai import OpenAI
 
+
 def main():
     # BIE exposes standard OpenAI-compatible endpoints on /v1
     client = OpenAI(

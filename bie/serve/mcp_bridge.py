@@ -109,7 +109,7 @@ class BIETool:
     ) -> str:
         """Route multimodal image and text query to Gemma-4 vision."""
         from pathlib import Path
-        url_ref = image if image.startswith("data:") or image.startswith("http") else str(Path(image).resolve())
+        url_ref = image if image.startswith(("data:", "http")) else str(Path(image).resolve())
         messages = [
             {
                 "role": "user",

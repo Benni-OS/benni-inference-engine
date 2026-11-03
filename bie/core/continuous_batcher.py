@@ -7,12 +7,13 @@ token generation across active slots without stalling new incoming requests.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
+from enum import StrEnum
+from typing import Any
 
 
-class SlotState(str, Enum):
+class SlotState(StrEnum):
     IDLE = "idle"
     PREFILLING = "prefilling"
     GENERATING = "generating"

@@ -96,7 +96,7 @@ class HotPinManager:
         if not path.is_file():
             return False
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
             self.n_layers = data.get("n_layers", self.n_layers)
             self.n_experts = data.get("n_experts", self.n_experts)
