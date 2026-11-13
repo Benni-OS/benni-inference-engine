@@ -1,4 +1,4 @@
-﻿"""Tests for the version-safe llama.cpp backend adapter."""
+"""Tests for the version-safe llama.cpp backend adapter."""
 import importlib.metadata
 import sys
 import types
@@ -63,6 +63,7 @@ def test_backend_satisfies_protocol():
 
 def test_load_forwards_supported_kwargs(monkeypatch):
     _install_llama(monkeypatch, OpenLlama)
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "0.2.10")
     backend = LlamaCppBackend()
     report = backend.load(_config())
     assert report["backend"] == "llama-cpp-python"
@@ -113,7 +114,7 @@ def test_strict_backend_drops_unsupported_args(monkeypatch):
 
 
 def test_missing_backend_raises(monkeypatch):
-    monkeypatch.delitem(sys.modules, "llama_cpp", raising=False)
+    monkeypatch.setitem(sys.modules, "llama_cpp", None)
     backend = LlamaCppBackend()
     with pytest.raises(RuntimeError, match="llama-cpp-python"):
         backend.load(_config())

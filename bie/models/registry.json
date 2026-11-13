@@ -1,6 +1,11 @@
 {
   "default_primary": "cyber-tiel-coder-35b",
   "default_vision": "gemma-4-26b-vision",
+  "default_video_understanding": "qwen2.5-vl-7b-video",
+  "default_video_generation_t2v": "wan2.1-t2v-14b",
+  "default_video_generation_i2v": "wan2.1-i2v-14b",
+  "default_video_realtime": "ltx-video-0.9.5",
+  "default_video_upscaler": "bie-video-upscaler-pipeline",
   "models": [
     {
       "id": "cyber-tiel-coder-35b",
@@ -38,6 +43,111 @@
         "min_ram_gb": 16,
         "recommended_vram_gb": 8,
         "recommended_ram_gb": 20
+      }
+    },
+    {
+      "id": "qwen2.5-vl-7b-video",
+      "name": "Qwen2.5-VL-7B-Instruct-Video",
+      "type": "multimodal_video",
+      "role": "video_understanding",
+      "params_total": "7B",
+      "params_active_per_token": "7B",
+      "hf_repo": "bartowski/Qwen_Qwen2.5-VL-7B-Instruct-GGUF",
+      "hf_file": "Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf",
+      "mmproj_file": "mmproj-Qwen2.5-VL-7B-Instruct-f16.gguf",
+      "profile": "qwen25_vl_7b",
+      "status": "supported",
+      "hardware": {
+        "min_vram_gb": 5,
+        "min_ram_gb": 8,
+        "recommended_vram_gb": 8,
+        "recommended_ram_gb": 16
+      }
+    },
+    {
+      "id": "qwen2.5-vl-3b-video",
+      "name": "Qwen2.5-VL-3B-Instruct-Video",
+      "type": "multimodal_video",
+      "role": "lightweight_video_understanding",
+      "params_total": "3B",
+      "params_active_per_token": "3B",
+      "hf_repo": "Qwen/Qwen2.5-VL-3B-Instruct-GGUF",
+      "hf_file": "qwen2.5-vl-3b-instruct-q4_k_m.gguf",
+      "mmproj_file": "mmproj-qwen2.5-vl-3b-instruct-f16.gguf",
+      "status": "supported",
+      "hardware": {
+        "min_vram_gb": 2.5,
+        "min_ram_gb": 4,
+        "recommended_vram_gb": 4,
+        "recommended_ram_gb": 8
+      }
+    },
+    {
+      "id": "wan2.1-t2v-14b",
+      "name": "Wan2.1-T2V-14B",
+      "type": "diffusion_video_dit",
+      "role": "video_generation_t2v",
+      "params_total": "14B",
+      "hf_repo": "city96/Wan2.1-T2V-14B-gguf",
+      "hf_file": "Wan2.1-T2V-14B-Q4_K_M.gguf",
+      "profile": "wan2_1_14b",
+      "status": "default_video_generation_t2v",
+      "hardware": {
+        "min_vram_gb": 6,
+        "min_ram_gb": 20,
+        "recommended_vram_gb": 8,
+        "recommended_ram_gb": 32
+      }
+    },
+    {
+      "id": "wan2.1-i2v-14b",
+      "name": "Wan2.1-I2V-14B-480P",
+      "type": "diffusion_video_dit",
+      "role": "video_generation_i2v",
+      "params_total": "14B",
+      "hf_repo": "city96/Wan2.1-I2V-14B-480P-gguf",
+      "hf_file": "Wan2.1-I2V-14B-480P-Q4_K_M.gguf",
+      "profile": "wan2_1_14b",
+      "status": "default_video_generation_i2v",
+      "hardware": {
+        "min_vram_gb": 6,
+        "min_ram_gb": 20,
+        "recommended_vram_gb": 8,
+        "recommended_ram_gb": 32
+      }
+    },
+    {
+      "id": "ltx-video-0.9.5",
+      "name": "LTX-Video-0.9.5",
+      "type": "diffusion_video_dit",
+      "role": "video_generation_realtime",
+      "params_total": "13B",
+      "hf_repo": "city96/LTX-Video-gguf",
+      "hf_file": "ltx-video-2b-v0.9.5-Q4_K_M.gguf",
+      "profile": "ltx_video",
+      "status": "default_video_realtime",
+      "hardware": {
+        "min_vram_gb": 5,
+        "min_ram_gb": 12,
+        "recommended_vram_gb": 8,
+        "recommended_ram_gb": 16
+      }
+    },
+    {
+      "id": "ltx-video-2.3",
+      "name": "LTX-Video-2.3",
+      "type": "diffusion_video_dit",
+      "role": "video_generation_realtime_enhanced",
+      "params_total": "13B",
+      "hf_repo": "QuantStack/LTX-2.3-GGUF",
+      "hf_file": "ltx-video-2.3-Q4_K_M.gguf",
+      "profile": "ltx_video",
+      "status": "supported",
+      "hardware": {
+        "min_vram_gb": 5.5,
+        "min_ram_gb": 14,
+        "recommended_vram_gb": 8,
+        "recommended_ram_gb": 24
       }
     },
     {

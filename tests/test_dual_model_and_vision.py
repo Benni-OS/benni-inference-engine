@@ -125,7 +125,11 @@ def test_bie_engine_defaults_and_vision_method() -> None:
     assert res["choices"][0]["message"]["content"] == "Mock vision output"
 
 
-def test_mcp_bridge_vram_arbiter() -> None:
+def test_mcp_bridge_vram_arbiter(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "bie.core.vram_arbiter.VRAMArbiter._detect_vram",
+        staticmethod(lambda: 8.0),
+    )
     plan = BIETool.vram_arbiter_plan("cooperative_split")
     assert plan["mode"] == "cooperative_split"
     assert plan["primary_ngl"] > 0

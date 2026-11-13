@@ -430,11 +430,131 @@ def cmd_arbiter(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_video_generate(args: argparse.Namespace) -> int:
+    from bie.core.video_generator import VideoGenerator, VideoGenParams
+
+    generator = VideoGenerator(output_dir=args.output_dir)
+    params = VideoGenParams(
+        prompt=args.prompt,
+        model=args.model,
+        image_url=args.image,
+        width=args.width,
+        height=args.height,
+        frames=args.frames,
+        fps=args.fps,
+        steps=args.steps,
+        guidance_scale=args.guidance,
+        enable_teacache=not args.disable_teacache,
+        upscale_after=not args.no_upscale,
+        upscale_factor=args.upscale_factor,
+        target_fps=args.target_fps,
+        seed=args.seed,
+    )
+    plan = generator.compute_generation_plan(params)
+    print("=== BIE Video Generation Plan ===")
+    print(json.dumps(plan, indent=2))
+
+    task = generator.create_task(params)
+    print(f"\nExecuting video task: {task.task_id}...")
+    task = generator.execute_task(task.task_id)
+    print("\n=== Result ===")
+    print(json.dumps({
+        "task_id": task.task_id,
+        "status": task.status,
+        "output_path": task.output_path,
+        "metrics": task.metrics,
+        "error": task.error_message,
+    }, indent=2))
+    return 0 if task.status == "completed" else 1
+
+
+def cmd_video_analyze(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from bie.core.video_engine import VideoEngine
+
+    engine = VideoEngine()
+    video_p = Path(args.video)
+    if not video_p.is_file():
+        print(f"Error: video not found at {args.video}", file=sys.stderr)
+        return 1
+
+    payload = engine.resolve_video(str(video_p), sampling_fps=args.fps, max_frames=args.max_frames)
+    if not payload:
+        print("Error: failed to resolve and sample video", file=sys.stderr)
+        return 1
+
+    formatted_prompt = engine.format_video_prompt(args.prompt, [payload])
+    output = {
+        "video": str(video_p),
+        "duration_sec": payload.duration_sec,
+        "resolution": f"{payload.width}x{payload.height}",
+        "sampled_frames_count": len(payload.sampled_frames),
+        "frames_timecodes": [f.timecode for f in payload.sampled_frames],
+        "formatted_prompt_tokens": formatted_prompt[:300] + "...",
+        "target_model": args.model,
+    }
+    print(json.dumps(output, indent=2))
+    return 0
+
+
+def cmd_video_upscale(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from bie.core.video_upscaler import UpscaleConfig, VideoUpscaler
+
+    upscaler = VideoUpscaler()
+    in_p = Path(args.input)
+    if not in_p.is_file():
+        print(f"Error: input video not found at {args.input}", file=sys.stderr)
+        return 1
+
+    cfg = UpscaleConfig(
+        scale=args.scale,
+        target_fps=args.fps,
+        mode=args.mode,
+        codec=args.codec,
+    )
+    plan = upscaler.compute_pipeline_plan(in_p, cfg)
+    print("=== BIE Video Upscale Plan ===")
+    print(json.dumps(plan, indent=2))
+
+    print(f"\nProcessing upscale: {in_p} -> scale={cfg.scale}x, target_fps={cfg.target_fps}...")
+    out_p = upscaler.upscale(in_p, output_path=args.output, config=cfg)
+    print("\n=== Result ===")
+    print(json.dumps({
+        "status": "completed",
+        "output_path": str(out_p),
+        "scale": cfg.scale,
+        "target_fps": cfg.target_fps,
+    }, indent=2))
+    return 0
+
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    from bie.tools.doctor import render_doctor_report, run_doctor
+
+    report = run_doctor(
+        vram_gb=args.vram_gb,
+        model_vram_gb=args.model_vram_gb,
+        safety_reserve_gb=args.reserve_gb,
+        n_layers=args.layers,
+        n_heads_kv=args.kv_heads,
+        head_dim=args.head_dim,
+    )
+    if args.json:
+        print(json.dumps(report, indent=2))
+    else:
+        print(render_doctor_report(report))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m bie.serve")
     sub = parser.add_subparsers(dest="command", required=True)
 
     for name, help_text, fn in (
+        ("doctor", "diagnosticar hardware, VRAM e contexto máximo sem RAM spill", cmd_doctor),
         ("bench", "rodar benchmark de decode/prefill/VRAM", cmd_bench),
         ("serve", "servir o modelo via uvicorn", cmd_serve),
         ("health", "checar /health, /ready e /v1/models", cmd_health),
@@ -445,12 +565,15 @@ def build_parser() -> argparse.ArgumentParser:
         ("pull", "baixar modelos GGUF diretamente do HuggingFace", cmd_pull),
         ("vision", "inspecionar e preparar inferência multimodal com Gemma-4", cmd_vision),
         ("arbiter", "calcular plano de alocação de VRAM entre Coder-35B e Gemma-4", cmd_arbiter),
+        ("video-generate", "gerar vídeo com Wan2.1 ou LTX-Video e upscale automático", cmd_video_generate),
+        ("video-analyze", "amostrar e preparar vídeo para Video-LLMs (Qwen2.5-VL)", cmd_video_analyze),
+        ("video-upscale", "executar super-resolução espacial e interpolação temporal RIFE", cmd_video_upscale),
     ):
         p = sub.add_parser(name, help=help_text)
         if name in ("bench", "serve", "health", "inspect", "matrix"):
             p.add_argument("--model", default="Cyber-Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf")
             p.add_argument("--model-path", default=None)
-            p.add_argument("--context", type=int, default=4096)
+            p.add_argument("--context", type=int, default=8192)
             p.add_argument("--threads", type=int, default=None)
             p.add_argument("--batch", type=int, default=512)
             p.add_argument("--n-gpu-layers", type=int, default=None)
@@ -498,6 +621,53 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("--output", default="", help="Texto de saída gerado")
             p.add_argument("--prompt-file", default=None, help="Caminho para arquivo com o prompt")
             p.add_argument("--output-file", default=None, help="Caminho para arquivo com o output")
+        elif name == "video-generate":
+            p.add_argument("--prompt", required=True, help="Descrição textual da cena para o vídeo")
+            p.add_argument(
+                "--model",
+                default="wan2.1-t2v-14b",
+                choices=["wan2.1-t2v-14b", "wan2.1-i2v-14b", "ltx-video-0.9.5", "ltx-video-2.3"],
+                help="Modelo de geração de vídeo",
+            )
+            p.add_argument("--image", default=None, help="Imagem inicial para Image-to-Video (I2V)")
+            p.add_argument("--width", type=int, default=832, help="Largura do vídeo")
+            p.add_argument("--height", type=int, default=480, help="Altura do vídeo")
+            p.add_argument("--frames", type=int, default=49, help="Total de frames base")
+            p.add_argument("--fps", type=int, default=16, help="FPS base da difusão")
+            p.add_argument("--steps", type=int, default=30, help="Passos de inferência DiT")
+            p.add_argument("--guidance", type=float, default=5.0, help="Escala de orientação CFG")
+            p.add_argument("--disable-teacache", action="store_true", help="Desativar aceleração TeaCache")
+            p.add_argument("--no-upscale", action="store_true", help="Não executar pipeline de upscale posterior")
+            p.add_argument("--upscale-factor", type=int, default=2, help="Fator de super-resolução espacial (2 ou 4)")
+            p.add_argument("--target-fps", type=int, default=60, help="FPS final com interpolação RIFE")
+            p.add_argument("--seed", type=int, default=None, help="Seed determinística")
+            p.add_argument("--output-dir", default="output/videos", help="Diretório de saída")
+        elif name == "video-analyze":
+            p.add_argument("--video", required=True, help="Caminho do arquivo de vídeo local")
+            p.add_argument("--prompt", default="Describe all scenes, actions and timecodes.", help="Prompt de análise")
+            p.add_argument("--fps", type=float, default=1.0, help="Taxa de amostragem de frames por segundo")
+            p.add_argument("--max-frames", type=int, default=16, help="Limite máximo de frames")
+            p.add_argument("--model", default="qwen2.5-vl-7b-video", help="Modelo de compreensão de vídeo")
+        elif name == "doctor":
+            p.add_argument("--vram-gb", type=float, default=None, help="Override GPU VRAM in GB (e.g., 8, 12, 16)")
+            p.add_argument("--model-vram-gb", type=float, default=5.5, help="Model weights VRAM footprint in GB")
+            p.add_argument("--reserve-gb", type=float, default=0.8, help="OS/CUDA safety reserve in GB")
+            p.add_argument("--layers", type=int, default=48, help="Transformer layer count")
+            p.add_argument("--kv-heads", type=int, default=8, help="KV attention heads (GQA)")
+            p.add_argument("--head-dim", type=int, default=128, help="Attention head dimension")
+            p.add_argument("--json", action="store_true", help="Emit machine-readable JSON report")
+        elif name == "video-upscale":
+            p.add_argument("--input", required=True, help="Caminho do vídeo de entrada")
+            p.add_argument("--output", default=None, help="Caminho do vídeo de saída")
+            p.add_argument("--scale", type=int, default=2, choices=[2, 4], help="Fator de super-resolução espacial")
+            p.add_argument("--fps", type=int, default=60, help="Taxa de quadros de destino com RIFE")
+            p.add_argument(
+                "--mode",
+                default="fast_cinema",
+                choices=["fast_cinema", "ultra_4k", "pure_spatial", "pure_temporal"],
+                help="Modo do pipeline de upscale",
+            )
+            p.add_argument("--codec", default="h264_nvenc", help="Codec de renderização (h264_nvenc ou libx264)")
         p.set_defaults(fn=fn)
     return parser
 

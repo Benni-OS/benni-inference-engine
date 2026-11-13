@@ -12,6 +12,7 @@ from typing import Any
 
 import psutil
 
+from .kv_quant import GGML_TYPE_MAP, KVQuantManager, KVQuantType
 from .scheduler_quant_aware import derive_from_gguf
 
 
@@ -71,7 +72,7 @@ DEFAULT_PROFILES: dict[str, ModelProfile] = {
     ),
     "cyber-tiel-coder-35b": ModelProfile(
         total_layers=41,
-        dense_layer_gb=0.17,
+        dense_layer_gb=0.35,
         expert_cache_gb_per_slot=0.12,
         expert_slots=128,
     ),
@@ -93,10 +94,12 @@ class MoEScheduler:
         *,
         profile: ModelProfile | None = None,
         budget: HardwareBudget | None = None,
+        n_ctx: int = 32768,
     ) -> None:
         self.model_name = model_name
         self.profile = profile or self._profile_for(model_name)
         self._budget = budget
+        self.n_ctx = n_ctx
 
     def _load_registry_profile(self, key: str) -> ModelProfile | None:
         """Search profiles in bie/models/profiles and bie/models/registry.json."""
@@ -230,12 +233,14 @@ class MoEScheduler:
             raise ValueError(f"{name} must be an integer") from exc
         return max(0, parsed)
 
-    def compute(self) -> dict[str, Any]:
-        """Return an auditable, conservative placement plan."""
+    def compute(self, n_ctx: int | None = None) -> dict[str, Any]:
+        """Return an auditable, conservative placement plan including KV quantization."""
+        target_ctx = n_ctx if n_ctx is not None else self.n_ctx
         budget = self._hardware_budget()
         warnings: list[str] = []
         gpu_override = self._env_int("BIE_GPU_LAYERS")
         cache_override = self._env_int("BIE_EXPERT_CACHE_SLOTS")
+        kv_env = os.getenv("BIE_KV_QUANT", "auto").strip().lower()
 
         if self.profile.total_layers <= 0:
             warnings.append("unknown_model_profile: GPU placement disabled")
@@ -264,12 +269,29 @@ class MoEScheduler:
         if cache_override is not None:
             slots = min(self.profile.expert_slots, cache_override)
 
+        kv_mgr = KVQuantManager(
+            n_layers=max(1, self.profile.total_layers or 48),
+        )
+        if kv_env in GGML_TYPE_MAP:
+            kv_quant: KVQuantType = kv_env  # type: ignore[assignment]
+        else:
+            # Remaining VRAM after placed dense layers + reserve is available for KV cache
+            model_vram_used = ngl * self.profile.dense_layer_gb
+            kv_vram_budget = max(0.5, budget.vram_available_gb - budget.vram_reserve_gb - model_vram_used)
+            kv_quant = kv_mgr.recommend_for_vram(target_ctx=target_ctx, available_vram_gb=kv_vram_budget)
+
+        kv_params = kv_mgr.get_backend_params(kv_quant)
+
         return {
             "vram_available_gb": round(budget.vram_available_gb, 2),
             "ram_available_gb": round(budget.ram_available_gb, 2),
             "ngl": max(0, ngl),
             "moe_offload_pattern": self.profile.moe_offload_pattern,
             "expert_cache_slots": max(0, slots),
+            "kv_quant": kv_quant,
+            "type_k": kv_params["type_k"],
+            "type_v": kv_params["type_v"],
+            "flash_attn": max(0, ngl) > 0,
             "model_profile": "known" if self.profile.total_layers else "unknown",
             "planner_source": "override" if gpu_override is not None else "calculated",
             "warnings": warnings,

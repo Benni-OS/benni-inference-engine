@@ -1,0 +1,99 @@
+{
+  "name": "BIE LTX-Video Realtime GGUF + STG + RIFE 60fps",
+  "description": "Workflow de ultra-baixa latência para RTX 4060: LTX-Video GGUF Q4, Spatial-Temporal Guidance, decodificação rápida e RIFE a 60 FPS.",
+  "engine": "benni-inference-engine",
+  "version": "1.0",
+  "hardware_target": "RTX 4060 8GB + 32GB RAM",
+  "prompt": {
+    "1": {
+      "inputs": {
+        "unet_name": "ltx-video-2b-v0.9.5-Q4_K_M.gguf"
+      },
+      "class_type": "UnetLoaderGGUF"
+    },
+    "2": {
+      "inputs": {
+        "clip_name": "t5xxl_fp8_e4m3fn.safetensors",
+        "type": "ltxv"
+      },
+      "class_type": "CLIPLoader"
+    },
+    "3": {
+      "inputs": {
+        "text": "Futuristic sleek electric vehicle drifting on wet asphalt at night, hyper-realistic, 8k",
+        "clip": ["2", 0]
+      },
+      "class_type": "CLIPTextEncode"
+    },
+    "4": {
+      "inputs": {
+        "text": "blurry, low quality, stuttering, distorted",
+        "clip": ["2", 0]
+      },
+      "class_type": "CLIPTextEncode"
+    },
+    "5": {
+      "inputs": {
+        "vae_name": "ltx_video_vae.safetensors"
+      },
+      "class_type": "VAELoader"
+    },
+    "6": {
+      "inputs": {
+        "width": 768,
+        "height": 512,
+        "length": 49,
+        "batch_size": 1
+      },
+      "class_type": "LTXVideoEmptyLatent"
+    },
+    "7": {
+      "inputs": {
+        "model": ["1", 0],
+        "stg_scale": 1.5
+      },
+      "class_type": "LTXVSpatialTemporalGuidance"
+    },
+    "8": {
+      "inputs": {
+        "model": ["7", 0],
+        "seed": 42,
+        "steps": 25,
+        "cfg": 3.0,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "positive": ["3", 0],
+        "negative": ["4", 0],
+        "latent_image": ["6", 0],
+        "denoise": 1.0
+      },
+      "class_type": "KSampler"
+    },
+    "9": {
+      "inputs": {
+        "samples": ["8", 0],
+        "vae": ["5", 0]
+      },
+      "class_type": "VAEDecodeTiled"
+    },
+    "10": {
+      "inputs": {
+        "images": ["9", 0],
+        "multiplier": 2,
+        "ckpt_name": "rife46.pth"
+      },
+      "class_type": "RIFE VFI"
+    },
+    "11": {
+      "inputs": {
+        "images": ["10", 0],
+        "frame_rate": 60,
+        "filename_prefix": "BIE_LTX_Realtime",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 18
+      },
+      "class_type": "VHS_VideoCombine"
+    }
+  }
+}

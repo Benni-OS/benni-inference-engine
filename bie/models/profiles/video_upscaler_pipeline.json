@@ -1,0 +1,27 @@
+{
+  "pipeline_id": "bie-video-upscaler-pipeline",
+  "name": "BIE Dual-Stage Neural Video Upscaler",
+  "stages": [
+    {
+      "stage": 1,
+      "type": "spatial_super_resolution",
+      "model": "realesr-animevideov3",
+      "scale_options": [2, 4],
+      "tile_size": 256,
+      "vram_limit_gb": 1.5
+    },
+    {
+      "stage": 2,
+      "type": "temporal_frame_interpolation",
+      "model": "rife-v4.6",
+      "target_fps": 60,
+      "motion_blur_reduction": true
+    }
+  ],
+  "codec": "h264_nvenc",
+  "crf": 18,
+  "hardware_budget": {
+    "vram_gb": 1.5,
+    "system_ram_gb": 4.0
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "model_id": "wan2.1-t2v-14b",
+  "name": "Wan2.1-T2V-14B",
+  "architecture": "diffusion_transformer_dit",
+  "params_total": "14B",
+  "role": "cinematic_video_generation",
+  "multimodal": true,
+  "hardware_budget": {
+    "vram_gb": 6.2,
+    "system_ram_gb": 22.0,
+    "offload_strategy": "gpu_attention_cpu_ffn_paged",
+    "target_gpu": "RTX 4060 8GB"
+  },
+  "generation_defaults": {
+    "width": 832,
+    "height": 480,
+    "fps": 16,
+    "frames": 49,
+    "steps": 30,
+    "guidance_scale": 5.0,
+    "teacache": {
+      "enabled": true,
+      "threshold": 0.15,
+      "speedup_factor": 1.8
+    },
+    "tiled_vae": {
+      "enabled": true,
+      "tile_size": 256,
+      "temporal_overlap": 8
+    }
+  },
+  "upscale_pipeline": {
+    "enabled": true,
+    "scale": 2,
+    "target_fps": 60,
+    "mode": "fast_cinema",
+    "spatial_model": "realesr-animevideov3",
+    "temporal_model": "rife-v4.6"
+  },
+  "hf_repo": "city96/Wan2.1-T2V-14B-gguf",
+  "hf_file": "Wan2.1-T2V-14B-Q4_K_M.gguf"
+}

@@ -1,4 +1,4 @@
-﻿"""Version-safe adapter for the llama.cpp Python backend.
+"""Version-safe adapter for the llama.cpp Python backend.
 
 pyproject declares ``llama-cpp-python`` without a minimum version, so the
 constructor contract must be probed at runtime instead of assumed.
@@ -11,6 +11,8 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
+
+from .kv_quant import GGML_TYPE_MAP, KVQuantType
 
 # Parameter names stable across llama-cpp-python releases.
 _STABLE_KWARGS = frozenset(
@@ -32,6 +34,10 @@ class BackendConfig:
     expert_cache_slots: int
     moe_offload_pattern: str
     verbose: bool = False
+    kv_quant: KVQuantType = "q4_0"
+    flash_attn: bool = True
+    type_k: int | None = None
+    type_v: int | None = None
 
 
 @runtime_checkable
@@ -116,6 +122,24 @@ class LlamaCppBackend:
         forward("n_batch", config.n_batch)
         forward("n_gpu_layers", config.ngl)
         forward("verbose", config.verbose)
+        if self._version_at_least((0, 3, 0)):
+            forward("n_threads_batch", config.n_threads)
+            if config.ngl > 0 and config.flash_attn:
+                forward("flash_attn", True)
+            resolved_type_k = (
+                config.type_k
+                if config.type_k is not None
+                else GGML_TYPE_MAP.get(config.kv_quant, 1)
+            )
+            resolved_type_v = (
+                config.type_v
+                if config.type_v is not None
+                else GGML_TYPE_MAP.get(config.kv_quant, 1)
+            )
+            if config.kv_quant != "f16" or config.type_k is not None:
+                forward("type_k", resolved_type_k)
+            if config.kv_quant != "f16" or config.type_v is not None:
+                forward("type_v", resolved_type_v)
         if config.ngl > 0:
             if self._version_at_least(_VERSION_GATED_KWARGS["offload_kqv"]):
                 forward("offload_kqv", True)
@@ -123,7 +147,13 @@ class LlamaCppBackend:
                 notes["offload_kqv"] = (
                     "requires llama-cpp-python>=" + ".".join(map(str, _VERSION_GATED_KWARGS["offload_kqv"]))
                 )
-        forward("n_experts", config.expert_cache_slots)
+        if config.expert_cache_slots:
+            if accepted is not None and "n_experts" in accepted:
+                kwargs["n_experts"] = config.expert_cache_slots
+            elif getattr(cls, "__name__", "") == "OpenLlama":
+                kwargs["n_experts"] = config.expert_cache_slots
+            else:
+                notes["n_experts"] = "not accepted by installed llama-cpp-python (managed dynamically via hot_pin)"
         if config.moe_offload_pattern:
             notes["moe_offload_pattern"] = "no stable llama.cpp constructor parameter"
         return kwargs, notes

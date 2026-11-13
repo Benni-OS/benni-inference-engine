@@ -1,0 +1,35 @@
+{
+  "model_id": "ltx-video-0.9.5",
+  "name": "LTX-Video-0.9.5",
+  "architecture": "realtime_dit_latent",
+  "params_total": "13B",
+  "role": "fast_realtime_video_generation",
+  "multimodal": true,
+  "hardware_budget": {
+    "vram_gb": 5.5,
+    "system_ram_gb": 16.0,
+    "offload_strategy": "gpu_quantized_dit_cpu_t5",
+    "target_gpu": "RTX 4060 8GB"
+  },
+  "generation_defaults": {
+    "width": 768,
+    "height": 512,
+    "fps": 24,
+    "frames": 49,
+    "steps": 25,
+    "guidance_scale": 3.0,
+    "stg_guidance": 1.5,
+    "tiled_vae": {
+      "enabled": true,
+      "tile_size": 256
+    }
+  },
+  "upscale_pipeline": {
+    "enabled": true,
+    "scale": 2,
+    "target_fps": 60,
+    "mode": "fast_cinema"
+  },
+  "hf_repo": "city96/LTX-Video-gguf",
+  "hf_file": "ltx-video-2b-v0.9.5-Q4_K_M.gguf"
+}

@@ -148,6 +148,56 @@ class BIETool:
         """Calculate deterministic offload placement."""
         return MoEScheduler(model_name).compute()
 
+    @classmethod
+    async def video_generate(
+        cls,
+        prompt: str,
+        model: str = "wan2.1-t2v-14b",
+        image_url: str | None = None,
+        width: int = 832,
+        height: int = 480,
+        frames: int = 49,
+        fps: int = 16,
+        steps: int = 30,
+        upscale_after: bool = True,
+        target_fps: int = 60,
+    ) -> dict[str, Any]:
+        """Generate high-fidelity video with Wan2.1 or LTX-Video and auto-upscale."""
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            resp = await client.post(
+                f"{cls.BIE_BASE_URL}/v1/videos/generations",
+                json={
+                    "prompt": prompt,
+                    "model": model,
+                    "image_url": image_url,
+                    "width": width,
+                    "height": height,
+                    "frames": frames,
+                    "fps": fps,
+                    "steps": steps,
+                    "upscale_after": upscale_after,
+                    "target_fps": target_fps,
+                },
+            )
+            resp.raise_for_status()
+            return resp.json()
+
+    @classmethod
+    async def video_upscale(
+        cls,
+        video_path: str,
+        scale: int = 2,
+        target_fps: int = 60,
+    ) -> dict[str, Any]:
+        """Super-resolution and frame interpolation for video."""
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            resp = await client.post(
+                f"{cls.BIE_BASE_URL}/v1/videos/upscale",
+                json={"video_path": video_path, "scale": scale, "target_fps": target_fps},
+            )
+            resp.raise_for_status()
+            return resp.json()
+
 
 # ---------------------------------------------------------------------------
 # Standalone MCP Server implementation (JSON-RPC 2.0 stdio)
@@ -224,6 +274,43 @@ MCP_TOOLS = [
             "required": ["model_name"],
         },
     },
+    {
+        "name": "bie_video_generate",
+        "description": "Generate high-fidelity video via Wan2.1-14B or LTX-Video with TeaCache and auto-upscale.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "prompt": {"type": "string", "description": "Cinematic visual description of the scene"},
+                "model": {
+                    "type": "string",
+                    "enum": ["wan2.1-t2v-14b", "wan2.1-i2v-14b", "ltx-video-0.9.5", "ltx-video-2.3"],
+                    "default": "wan2.1-t2v-14b",
+                },
+                "image_url": {"type": "string", "description": "Initial frame image for Image-to-Video"},
+                "width": {"type": "integer", "default": 832},
+                "height": {"type": "integer", "default": 480},
+                "frames": {"type": "integer", "default": 49},
+                "fps": {"type": "integer", "default": 16},
+                "steps": {"type": "integer", "default": 30},
+                "upscale_after": {"type": "boolean", "default": True},
+                "target_fps": {"type": "integer", "default": 60},
+            },
+            "required": ["prompt"],
+        },
+    },
+    {
+        "name": "bie_video_upscale",
+        "description": "Apply 2x/4x spatial super-resolution and temporal frame interpolation (RIFE 60fps) to video.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "video_path": {"type": "string", "description": "Local path to source video"},
+                "scale": {"type": "integer", "enum": [2, 4], "default": 2},
+                "target_fps": {"type": "integer", "default": 60},
+            },
+            "required": ["video_path"],
+        },
+    },
 ]
 
 
@@ -286,6 +373,27 @@ def run_mcp_server() -> None:
                     content = [{"type": "text", "text": json.dumps(res, indent=2)}]
                 elif tool_name == "bie_hardware_plan":
                     res = BIETool.hardware_plan(args["model_name"])
+                    content = [{"type": "text", "text": json.dumps(res, indent=2)}]
+                elif tool_name == "bie_video_generate":
+                    res = await BIETool.video_generate(
+                        prompt=args["prompt"],
+                        model=args.get("model", "wan2.1-t2v-14b"),
+                        image_url=args.get("image_url"),
+                        width=int(args.get("width", 832)),
+                        height=int(args.get("height", 480)),
+                        frames=int(args.get("frames", 49)),
+                        fps=int(args.get("fps", 16)),
+                        steps=int(args.get("steps", 30)),
+                        upscale_after=bool(args.get("upscale_after", True)),
+                        target_fps=int(args.get("target_fps", 60)),
+                    )
+                    content = [{"type": "text", "text": json.dumps(res, indent=2)}]
+                elif tool_name == "bie_video_upscale":
+                    res = await BIETool.video_upscale(
+                        video_path=args["video_path"],
+                        scale=int(args.get("scale", 2)),
+                        target_fps=int(args.get("target_fps", 60)),
+                    )
                     content = [{"type": "text", "text": json.dumps(res, indent=2)}]
                 else:
                     return {

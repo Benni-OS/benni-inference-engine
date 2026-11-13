@@ -210,7 +210,8 @@ def test_chat_completions_multimodal_vision(client):
     assert "[IMAGE_1]" in prompt
 
 
-def test_bie_arbiter_endpoint(client):
+def test_bie_arbiter_endpoint(client, monkeypatch):
+    monkeypatch.setattr("bie.serve.openai_compat._arbiter.total_vram_gb", 8.0)
     response = client.get("/v1/bie/arbiter?mode=cooperative_split")
     assert response.status_code == 200
     body = response.json()

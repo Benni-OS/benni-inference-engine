@@ -1,0 +1,35 @@
+{
+  "model_id": "qwen2.5-vl-7b-video",
+  "name": "Qwen2.5-VL-7B-Instruct-Video",
+  "total_layers": 28,
+  "dense_layer_gb": 0.18,
+  "role": "video_understanding",
+  "multimodal": true,
+  "supports_video_input": true,
+  "skill81_profile": {
+    "sa81e_name": "Qwen2.5-VL-Video",
+    "strengths": [
+      "long video reasoning",
+      "timestamp event localization",
+      "action detection",
+      "frame OCR",
+      "safe-zone visual audit"
+    ],
+    "optimizations": [
+      "temporal_anchor_verification",
+      "timestamp_precision_marker"
+    ]
+  },
+  "inference_params": {
+    "temperature": 0.3,
+    "top_p": 0.85,
+    "top_k": 40
+  },
+  "sampling": {
+    "default_fps": 1.0,
+    "max_frames": 16
+  },
+  "hf_repo": "bartowski/Qwen_Qwen2.5-VL-7B-Instruct-GGUF",
+  "hf_file": "Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf",
+  "mmproj_file": "mmproj-Qwen2.5-VL-7B-Instruct-f16.gguf"
+}

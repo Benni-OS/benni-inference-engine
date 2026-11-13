@@ -46,7 +46,7 @@ def test_load_creates_llama_with_scheduler_ngl(tmp_path, monkeypatch):
     model_file = tmp_path / "qwen.gguf"
     model_file.write_bytes(b"fake-gguf")
     _install_fake_llama(monkeypatch)
-    monkeypatch.setattr(MoEScheduler, "compute", lambda self: dict(FIXED_CONFIG))
+    monkeypatch.setattr(MoEScheduler, "compute", lambda self, **kwargs: dict(FIXED_CONFIG))
     engine = BIEEngine("qwen.gguf", model_path=model_file, n_ctx=8192)
     config = engine.load()
     assert engine.model is FakeLlama.instances[-1]

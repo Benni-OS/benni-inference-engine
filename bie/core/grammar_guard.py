@@ -14,6 +14,25 @@ from typing import Any
 class GrammarGuard:
     """Enforces and validates structured JSON schemas on model generation."""
 
+    _GRAMMAR_CACHE: dict[str, Any] = {}
+
+    @classmethod
+    def to_llama_grammar(cls, schema: dict[str, Any] | None) -> Any | None:
+        """Compile a JSON Schema into a ``llama_cpp.LlamaGrammar`` for token-level GBNF decoding."""
+        if not schema or not isinstance(schema, dict):
+            return None
+        cache_key = json.dumps(schema, sort_keys=True, ensure_ascii=False)
+        if cache_key in cls._GRAMMAR_CACHE:
+            return cls._GRAMMAR_CACHE[cache_key]
+        try:
+            from llama_cpp import LlamaGrammar
+
+            grammar = LlamaGrammar.from_json_schema(cache_key, verbose=False)
+            cls._GRAMMAR_CACHE[cache_key] = grammar
+            return grammar
+        except Exception:
+            return None
+
     @staticmethod
     def strip_markdown_fences(text: str) -> str:
         """Remove ```json ... ``` markdown wrappers."""

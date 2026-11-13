@@ -48,6 +48,7 @@ all = [
 
 [project.scripts]
 bie = "bie.serve.__main__:main"
+bie-probe = "bie.tools.doctor:main"
 
 [project.urls]
 Homepage = "https://github.com/benni-os/benni-inference-engine"

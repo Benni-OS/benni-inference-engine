@@ -25,7 +25,7 @@ class ToolCallingEngine:
     @classmethod
     def format_tools_system_message(cls, tools: list[dict[str, Any]]) -> str:
         """Render registered tools into system instructions."""
-        tools_doc = json.dumps(tools, indent=2)
+        tools_doc = json.dumps(tools, separators=(",", ":"), ensure_ascii=False)
         return (
             "\n\n# TOOLS AVAILABLE\n"
             "You have access to the following tools. If you need to invoke a tool, output a `<tool_call>` XML tag "
