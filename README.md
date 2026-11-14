@@ -19,7 +19,7 @@
 
 <br/>
 
-<img src="assets/demo.svg" alt="Benni Inference Engine MoE Hybrid Offload Demo" width="100%"/>
+<img src="assets/demo.gif" alt="Benni Inference Engine MoE Hybrid Offload Demo" width="100%"/>
 
 </div>
 
